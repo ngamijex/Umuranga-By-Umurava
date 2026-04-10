@@ -1,61 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────
+   Umuranga Design System — CSS Variables
+   Brand Colors:
+     Primary Blue  : #2b73f0
+     Dark Navy     : #011b40
+     Light BG      : #f6fcff
+     Secondary Blue: #2b71f0
+   ───────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
+    /* shadcn/ui tokens — mapped to Umuranga brand */
+    --background:            210 100% 99%;   /* #f6fcff */
+    --foreground:            215 91% 12%;    /* #011b40 */
+    --card:                  0   0%  100%;
+    --card-foreground:       215 91% 12%;
+    --popover:               0   0%  100%;
+    --popover-foreground:    215 91% 12%;
+    --primary:               220 86% 56%;   /* #2b73f0 */
+    --primary-foreground:    0   0%  100%;
+    --secondary:             210 100% 97%;  /* very light blue */
+    --secondary-foreground:  215 91% 12%;
+    --muted:                 210 40%  96%;
+    --muted-foreground:      215 16%  47%;
+    --accent:                210 100% 97%;
+    --accent-foreground:     215 91% 12%;
+    --destructive:           0   84%  60%;
+    --destructive-foreground:0   0%  100%;
+    --border:                220 60%  92%;  /* #e2eaf6 */
+    --input:                 220 60%  92%;
+    --ring:                  220 86%  56%;  /* #2b73f0 */
+    --radius:                0.625rem;
+
+    /* Chart colors */
+    --chart-1: 220 86% 56%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-4: 43  74% 66%;
+    --chart-5: 27  87% 67%;
   }
 }
 
@@ -63,7 +49,146 @@
   * {
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-[#374151] font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-[#011b40] font-bold tracking-tight;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   Umuranga Utility Classes
+   ───────────────────────────────────────────────────────── */
+@layer components {
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-[#2b73f0] text-white font-semibold
+           px-6 py-3 rounded-full
+           hover:bg-[#1a5fd4] active:bg-[#1450b8]
+           transition-all duration-200
+           shadow-[0_2px_8px_rgba(43,115,240,0.30)]
+           hover:shadow-[0_4px_16px_rgba(43,115,240,0.40)]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2b73f0] focus-visible:ring-offset-2
+           disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           border-2 border-[#2b73f0] text-[#2b73f0] font-semibold
+           px-6 py-3 rounded-full bg-white
+           hover:bg-[#f6fcff] active:bg-[#e2eaf6]
+           transition-all duration-200
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2b73f0] focus-visible:ring-offset-2
+           disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2
+           bg-[#011b40] text-white font-semibold
+           px-6 py-3 rounded-full
+           hover:bg-[#0d2d6b] active:bg-[#021428]
+           transition-all duration-200
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#011b40] focus-visible:ring-offset-2
+           disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  /* Cards */
+  .card-brand {
+    @apply bg-white rounded-2xl border border-[#e2eaf6]
+           shadow-[0_1px_3px_rgba(43,115,240,0.08)]
+           hover:shadow-[0_4px_16px_rgba(43,115,240,0.12)]
+           transition-shadow duration-300;
+  }
+
+  /* Section wrappers */
+  .section-white {
+    @apply bg-white py-16 md:py-24;
+  }
+
+  .section-light {
+    @apply bg-[#f6fcff] py-16 md:py-24;
+  }
+
+  .section-blue {
+    @apply bg-[#2b73f0] py-16 md:py-24;
+  }
+
+  .section-dark {
+    @apply bg-[#011b40] py-16 md:py-24;
+  }
+
+  .section-gradient {
+    @apply bg-[linear-gradient(135deg,#011b40_0%,#0d2d6b_60%,#2b73f0_100%)] py-16 md:py-24;
+  }
+
+  /* Container */
+  .container-brand {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Section headings */
+  .section-label {
+    @apply text-[#2b73f0] text-sm font-semibold uppercase tracking-widest mb-3;
+  }
+
+  .section-title {
+    @apply text-[#011b40] text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  .section-title-white {
+    @apply text-white text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-[#6b7280] text-lg leading-relaxed max-w-2xl mx-auto mt-4;
+  }
+
+  .section-subtitle-white {
+    @apply text-blue-100 text-lg leading-relaxed max-w-2xl mx-auto mt-4;
+  }
+
+  /* Icon container */
+  .icon-box {
+    @apply w-12 h-12 rounded-xl bg-[#f6fcff] flex items-center justify-center
+           text-[#2b73f0] shrink-0;
+  }
+
+  .icon-box-dark {
+    @apply w-12 h-12 rounded-xl bg-[#ffffff1a] flex items-center justify-center
+           text-white shrink-0;
+  }
+
+  /* Badge / pill */
+  .badge-brand {
+    @apply inline-flex items-center gap-1.5
+           bg-[#f6fcff] text-[#2b73f0] text-xs font-semibold
+           px-3 py-1 rounded-full border border-[#e2eaf6];
+  }
+
+  /* Input fields */
+  .input-brand {
+    @apply w-full rounded-xl border border-[#e2eaf6] bg-white
+           px-4 py-3 text-[#011b40] placeholder-[#9ca3af]
+           focus:outline-none focus:ring-2 focus:ring-[#2b73f0] focus:border-transparent
+           transition-all duration-200;
+  }
+
+  /* Stat number */
+  .stat-number {
+    @apply text-4xl md:text-5xl font-extrabold text-[#2b73f0];
+  }
+
+  .stat-number-white {
+    @apply text-4xl md:text-5xl font-extrabold text-white;
   }
 }
