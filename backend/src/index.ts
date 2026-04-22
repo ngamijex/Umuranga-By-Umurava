@@ -27,6 +27,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", routes);
 
+app.get("/", (_req, res) => {
+  res.json({
+    service: "umuranga-backend",
+    message: "API is under /api — use /health for a quick check.",
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "umuranga-backend", timestamp: new Date().toISOString() });
 });
