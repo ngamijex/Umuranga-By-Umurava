@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Zap, Twitter, Linkedin, Github, Mail } from "lucide-react";
+import Image from "next/image";
+import { Twitter, Linkedin, Github, Phone, Mail } from "lucide-react";
 
 const footerLinks: Record<string, { label: string; href: string }[]> = {
   Product: [
-    { label: "Features",    href: "#features"     },
-    { label: "How It Works",href: "#how-it-works" },
-    { label: "Impact",      href: "#stats"         },
-    { label: "Security",    href: "#security"      },
+    { label: "Features",     href: "#features"     },
+    { label: "How It Works", href: "#how-it-works" },
+    { label: "Pricing",      href: "#pricing"       },
+    { label: "Security",     href: "#security"      },
   ],
   Company: [
     { label: "About Us", href: "/about"   },
@@ -16,9 +17,9 @@ const footerLinks: Record<string, { label: string; href: string }[]> = {
   ],
   Resources: [
     { label: "Documentation", href: "/docs"      },
-    { label: "API Reference", href: "/api-docs"  },
-    { label: "Changelog",     href: "/changelog" },
-    { label: "Status",        href: "/status"    },
+    { label: "API Reference",  href: "/api-docs"  },
+    { label: "Changelog",      href: "/changelog" },
+    { label: "Status",         href: "/status"    },
   ],
 };
 
@@ -31,69 +32,89 @@ const socials = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[#011b40] text-white">
-      <div className="container-brand py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+    <footer style={{ background: "#2b72f0" }}>
+      <style>{`
+        .ft-subscribe-input::placeholder { color: rgba(255,255,255,0.5); }
+        .ft-subscribe-input:focus { outline: none; border-color: rgba(255,255,255,0.6) !important; }
+        .ft-subscribe-btn:hover { background: #1a5cd4 !important; }
+        .ft-link:hover { color: #fff !important; }
+        .ft-social:hover { background: rgba(255,255,255,0.3) !important; }
+      `}</style>
 
-          {/* Brand column */}
-          <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-[#2b73f0] flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+      {/* ── Blue footer body ── */}
+      <div style={{ background:"#2b72f0" }}>
+        <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"240px 24px 40px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1.3fr", gap:"40px" }}>
+
+            {/* Brand */}
+            <div>
+              <Link href="/">
+                <Image
+                  src="/logo.svg"
+                  alt="Umuranga"
+                  width={500}
+                  height={130}
+                  style={{ height:"130px", width:"auto", objectFit:"contain", filter:"brightness(0) invert(1)" }}
+                />
+              </Link>
+              <p style={{ color:"rgba(191,219,255,0.75)", fontSize:"0.84rem", lineHeight:1.7, maxWidth:"240px", marginTop:"8px" }}>
+                AI-powered talent screening for hiring top African digital talent — fast, fair, and explainable.
+              </p>
+              <div style={{ display:"flex", gap:"10px", marginTop:"18px" }}>
+                {socials.map(({ Icon, href }, i) => (
+                  <a key={i} href={href} className="ft-social" style={{ width:"36px", height:"36px", borderRadius:"50%", background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", textDecoration:"none", transition:"all 0.2s" }}>
+                    <Icon style={{ width:"15px", height:"15px" }} />
+                  </a>
+                ))}
               </div>
-              <span className="font-extrabold text-xl text-white tracking-tight">Umuranga</span>
-            </Link>
-            <p className="text-blue-100/60 text-sm leading-relaxed max-w-xs">
-              AI-powered talent screening for hiring top African digital talent — fast, fair, and explainable.
-              Built for the Umurava Hackathon.
-            </p>
-            <div className="flex items-center gap-3 mt-6">
-              {socials.map(({ Icon, href }, i) => (
-                <a
-                  key={i}
-                  href={href}
-                  className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/60 hover:bg-[#2b73f0] hover:text-white transition-all duration-200"
-                >
-                  <Icon className="w-4 h-4" />
+            </div>
+
+            {/* Link columns */}
+            {Object.entries(footerLinks).map(([section, links]) => (
+              <div key={section}>
+                <h4 style={{ fontWeight:700, color:"#fff", fontSize:"0.82rem", marginBottom:"16px" }}>
+                  {section}
+                </h4>
+                <ul style={{ listStyle:"none", margin:0, padding:0, display:"flex", flexDirection:"column", gap:"10px" }}>
+                  {links.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href} className="ft-link" style={{ color:"rgba(191,219,255,0.7)", fontSize:"0.85rem", textDecoration:"none", transition:"color 0.2s" }}>
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+
+            {/* Contact Us */}
+            <div>
+              <h4 style={{ fontWeight:700, color:"#fff", fontSize:"0.82rem", marginBottom:"16px" }}>Contact Us</h4>
+              <div style={{ display:"flex", flexDirection:"column", gap:"12px" }}>
+                <a href="tel:+250780000000" style={{ display:"flex", alignItems:"center", gap:"10px", color:"rgba(191,219,255,0.8)", fontSize:"0.85rem", textDecoration:"none" }}>
+                  <span style={{ width:"30px", height:"30px", borderRadius:"8px", background:"rgba(255,255,255,0.18)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <Phone style={{ width:"14px", height:"14px", color:"#fff" }} />
+                  </span>
+                  +250 780 000 000
                 </a>
-              ))}
+                <a href="mailto:hello@umuranga.rw" style={{ display:"flex", alignItems:"center", gap:"10px", color:"rgba(191,219,255,0.8)", fontSize:"0.85rem", textDecoration:"none" }}>
+                  <span style={{ width:"30px", height:"30px", borderRadius:"8px", background:"rgba(255,255,255,0.18)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <Mail style={{ width:"14px", height:"14px", color:"#fff" }} />
+                  </span>
+                  hello@umuranga.rw
+                </a>
+              </div>
             </div>
           </div>
 
-          {/* Link columns */}
-          {Object.entries(footerLinks).map(([section, links]) => (
-            <div key={section}>
-              <h4 className="font-semibold text-white text-xs uppercase tracking-widest mb-5">
-                {section}
-              </h4>
-              <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-blue-100/50 hover:text-white text-sm transition-colors duration-200"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {/* Bottom bar */}
+          <div style={{ marginTop:"40px", paddingTop:"20px", borderTop:"1px solid rgba(255,255,255,0.15)", display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"space-between", gap:"10px" }}>
+            <p style={{ color:"rgba(191,219,255,0.45)", fontSize:"0.78rem" }}>© 2026 Umuranga. Built for the Umurava Hackathon. All rights reserved.</p>
+            <div style={{ display:"flex", gap:"20px" }}>
+              {["Privacy Policy","Terms of Use","Legal","Site Map"].map(label => (
+                <Link key={label} href="#" className="ft-link" style={{ color:"rgba(191,219,255,0.45)", fontSize:"0.78rem", textDecoration:"none", transition:"color 0.2s" }}>{label}</Link>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* Bottom bar */}
-        <div className="mt-14 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-blue-100/40 text-sm">
-            © 2026 Umuranga. Built for the Umurava Hackathon. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-blue-100/40 hover:text-white text-sm transition-colors">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="text-blue-100/40 hover:text-white text-sm transition-colors">
-              Terms of Service
-            </Link>
           </div>
         </div>
       </div>

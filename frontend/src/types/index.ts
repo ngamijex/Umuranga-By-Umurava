@@ -45,6 +45,21 @@ export interface Candidate {
   createdAt: string;
 }
 
+export interface JobRequirementComparisonRow {
+  aspect: string;
+  whatJobNeeds: string;
+  whatCandidateOffers: string;
+  fitLevel: string;
+  detail: string;
+}
+
+export interface HrInputsAssessment {
+  howPreferencesApply: string;
+  howCriteriaApply: string;
+  howNotesApply: string;
+  overallAlignment: string;
+}
+
 export interface ScreeningResult {
   id: string;
   candidateId: string;
@@ -62,6 +77,8 @@ export interface ScreeningResult {
   gaps: string[];
   recommendation: "strong_yes" | "yes" | "maybe" | "no";
   aiExplanation: string;
+  jobRequirementComparisons?: JobRequirementComparisonRow[];
+  hrInputsAssessment?: HrInputsAssessment;
   rank?: number;
   createdAt: string;
 }

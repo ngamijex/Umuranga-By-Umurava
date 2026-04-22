@@ -1,76 +1,134 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
-const navLinks = [
-  { label: "Features",    href: "#features"     },
-  { label: "How It Works",href: "#how-it-works" },
-  { label: "Impact",      href: "#stats"         },
-  { label: "Testimonials",href: "#testimonials"  },
+/* ── Nav tabs — 3 only ─────────────────────────────────── */
+const navTabs = [
+  { label: "About",    href: "#about",      desc: "Overview & Purpose",    primary: false },
+  { label: "Hire",     href: "/dashboard",  desc: "Hiring Playground",     primary: true  },
+  { label: "Insights", href: "#insights",   desc: "Analytics & Reports",   primary: false },
 ];
 
 export default function Navbar() {
-  const [isOpen,   setIsOpen]   = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
+  /* Close drawer on ESC */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setIsOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/98 backdrop-blur-md shadow-[0_2px_20px_rgba(43,115,240,0.08)] border-b border-[#e2eaf6]"
-          : "bg-transparent"
-      }`}
+      className="fixed top-0 left-0 right-0 z-[1000] transition-shadow duration-200"
+      style={{
+        backgroundColor: "var(--navbar-bg)",      /* #2B72F0 — same as hero */
+        height: "var(--navbar-height)",            /* 70px */
+      }}
     >
-      <div className="container-brand">
-        <div className="flex items-center justify-between h-16 md:h-[72px]">
+      <div className="container-brand h-full">
+        <div className="flex items-center justify-between h-full">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#2b73f0] flex items-center justify-center shadow-[0_2px_8px_rgba(43,115,240,0.40)]">
-              <Zap className="w-5 h-5 text-white" />
+          {/* ── Logo ─────────────────────────────────────────── */}
+          <Link
+            href="/"
+            className="shrink-0"
+            style={{ position: "relative", display: "block", width: "230px", height: "72px" }}
+          >
+            {/* SVG clip — vertically centered, trims canvas whitespace */}
+            <div style={{
+              position: "absolute", top: "50%", transform: "translateY(-50%)",
+              width: "230px", height: "58px", overflow: "hidden",
+              display: "flex", alignItems: "center",
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.svg"
+                alt="Umuranga"
+                style={{ height: "650px", width: "auto", flexShrink: 0 }}
+                className="brightness-0 invert"
+              />
             </div>
-            <span className={`font-extrabold text-xl tracking-tight transition-colors duration-300 ${scrolled ? "text-[#011b40]" : "text-white"}`}>
-              Umuranga
+            {/* By Umurava — pinned to bottom-right, never overflows */}
+            <span style={{
+              position: "absolute", bottom: "3px", right: "0",
+              fontSize: "12px", color: "#FFFFFF",
+              fontWeight: 600, letterSpacing: "0.06em",
+            }}>
+              By Umurava
             </span>
           </Link>
 
-          {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((l) => (
+          {/* ── Desktop pill nav ───────────────────────────── */}
+          <div className="hidden md:flex items-center gap-1">
+            {navTabs.map((tab) => (
               <Link
-                key={l.label}
-                href={l.href}
-                className={`font-medium text-sm transition-colors hover:text-[#2b73f0] ${scrolled ? "text-[#374151]" : "text-white/85"}`}
+                key={tab.label}
+                href={tab.href}
+                className="px-4 py-2 rounded-full text-base transition-all duration-200 whitespace-nowrap"
+                style={
+                  tab.primary
+                    ? {
+                        backgroundColor: "rgba(255,255,255,0.22)",
+                        color: "#FFFFFF",
+                        fontFamily: '"Work Sans", "Work Sans Fallback"',
+                        fontWeight: 500,
+                      }
+                    : {
+                        color: "var(--navbar-text)",
+                        fontFamily: '"Work Sans", "Work Sans Fallback"',
+                        fontWeight: 500,
+                      }
+                }
+                onMouseEnter={(e) => {
+                  if (!tab.primary)
+                    (e.currentTarget as HTMLElement).style.color = "#FFFFFF";
+                }}
+                onMouseLeave={(e) => {
+                  if (!tab.primary)
+                    (e.currentTarget as HTMLElement).style.color = "var(--navbar-text)";
+                }}
               >
-                {l.label}
+                {tab.label}
               </Link>
             ))}
           </div>
 
-          {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* ── Desktop CTAs ───────────────────────────────── */}
+          <div className="hidden md:flex items-center gap-3 shrink-0">
+            {/* Login — solid white pill, blue text */}
             <Link
               href="/login"
-              className={`font-semibold text-sm transition-colors hover:text-[#2b73f0] ${scrolled ? "text-[#011b40]" : "text-white"}`}
+              className="text-sm font-medium px-6 py-3 rounded-full transition-all"
+              style={{ backgroundColor: "#FFFFFF", color: "var(--color-primary)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#f0f4ff"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#FFFFFF"; }}
             >
-              Sign In
+              Login
             </Link>
-            <Link href="/login" className="btn-primary text-sm px-5 py-2.5">
-              Get Started →
+            {/* Hire Now — frosted blue pill, white text */}
+            <Link
+              href="/login"
+              className="text-sm font-medium px-6 py-3 rounded-full transition-all"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.22)",
+                color: "#FFFFFF",
+                border: "1px solid rgba(255,255,255,0.50)",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.32)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.22)"; }}
+            >
+              Hire Now
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
+          {/* ── Mobile hamburger ───────────────────────────── */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`md:hidden p-2 rounded-lg transition-colors ${scrolled ? "text-[#011b40]" : "text-white"}`}
+            className="md:hidden p-2 rounded-lg transition-colors"
+            style={{ color: "#FFFFFF" }}
             aria-label="Toggle menu"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -78,26 +136,54 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile drawer */}
+      {/* ── Mobile drawer ──────────────────────────────────── */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-[#e2eaf6] shadow-lg">
+        <div
+          className="md:hidden shadow-lg"
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderTop: "1px solid var(--navbar-border)",
+          }}
+        >
           <div className="container-brand py-4 space-y-1">
-            {navLinks.map((l) => (
+            {navTabs.map((tab) => (
               <Link
-                key={l.label}
-                href={l.href}
+                key={tab.label}
+                href={tab.href}
                 onClick={() => setIsOpen(false)}
-                className="block text-[#374151] hover:text-[#2b73f0] font-medium py-2.5 px-3 rounded-xl hover:bg-[#f6fcff] transition-colors"
+                className="flex flex-col py-3 px-4 rounded-xl font-semibold text-sm transition-all"
+                style={
+                  tab.primary
+                    ? { backgroundColor: "var(--color-primary)", color: "#FFFFFF" }
+                    : { color: "var(--navbar-text)" }
+                }
               >
-                {l.label}
+                <span>{tab.label}</span>
+                <span className="text-xs font-normal opacity-60 mt-0.5">{tab.desc}</span>
               </Link>
             ))}
-            <div className="pt-3 border-t border-[#e2eaf6] flex flex-col gap-2">
-              <Link href="/login" onClick={() => setIsOpen(false)} className="btn-secondary text-sm text-center">
-                Sign In
+            <div
+              className="pt-3 flex flex-col gap-2"
+              style={{ borderTop: "1px solid var(--border-light)" }}
+            >
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="text-center py-2.5 px-4 rounded-full font-semibold text-sm transition-all"
+                style={{
+                  border: "1.5px solid var(--color-primary)",
+                  color: "var(--color-primary)",
+                }}
+              >
+                Login
               </Link>
-              <Link href="/login" onClick={() => setIsOpen(false)} className="btn-primary text-sm text-center">
-                Get Started →
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="text-center py-2.5 px-4 rounded-full font-semibold text-sm"
+                style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}
+              >
+                Hire Now
               </Link>
             </div>
           </div>

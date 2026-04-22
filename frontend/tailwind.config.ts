@@ -10,17 +10,43 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ─── Umuranga Brand Palette ───────────────────────────
+        /* ── Design System Palette (exact from CSS guide) ──── */
+        primary: {
+          DEFAULT: "#2B72F0",
+          dark:    "#1D4ED8",
+          light:   "#6B9CF5",
+          50:      "#EFF6FF",
+          100:     "#DBEAFE",
+          200:     "#BFDBFE",
+          400:     "#60A5FA",
+          500:     "#3B82F6",
+          600:     "#2563EB",
+          700:     "#1D4ED8",
+          800:     "#1E40AF",
+          900:     "#1E3A8A",
+        },
+        hero: {
+          DEFAULT: "#0F3460",
+          alt:     "#1A4A7A",
+        },
+        section: {
+          blue:      "#EFF6FF",
+          "blue-mid":"#DBEAFE",
+          dark:      "#1E3A8A",
+          "dark-alt":"#0F2D6B",
+        },
+        navy:  "#0F172A",
         brand: {
-          primary:   "#2b73f0",   // Main CTA blue
-          secondary: "#2b71f0",   // Gradient / hover blue
-          dark:      "#011b40",   // Dark navy — navbar, footer, headings
-          light:     "#f6fcff",   // Light blue-white section backgrounds
-          hover:     "#1a5fd4",   // Primary button hover
-          border:    "#e2eaf6",   // Blue-tinted card borders
+          /* Legacy aliases kept for any existing usage */
+          primary:  "#3B82F6",
+          dark:     "#0F3460",
+          navy:     "#0F172A",
+          light:    "#EFF6FF",
+          hover:    "#2563EB",
+          border:   "#E5E7EB",
         },
 
-        // ─── shadcn/ui CSS-variable tokens (required by shadcn components) ─
+        /* ── shadcn/ui CSS-variable tokens ─────────────────── */
         background:  "hsl(var(--background))",
         foreground:  "hsl(var(--foreground))",
         card: {
@@ -30,14 +56,6 @@ const config: Config = {
         popover: {
           DEFAULT:    "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
-        },
-        primary: {
-          DEFAULT:    "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT:    "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
         },
         muted: {
           DEFAULT:    "hsl(var(--muted))",
@@ -63,40 +81,57 @@ const config: Config = {
         },
       },
 
-      borderRadius: {
-        lg:   "var(--radius)",
-        md:   "calc(var(--radius) - 2px)",
-        sm:   "calc(var(--radius) - 4px)",
-        "2xl": "1rem",
-        "3xl": "1.5rem",
-      },
-
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Work Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
       },
 
       fontSize: {
-        "display-xl": ["3.75rem", { lineHeight: "1.1", fontWeight: "800" }],
-        "display-lg": ["3rem",    { lineHeight: "1.15", fontWeight: "700" }],
-        "display-md": ["2.25rem", { lineHeight: "1.2",  fontWeight: "700" }],
-        "display-sm": ["1.875rem",{ lineHeight: "1.25", fontWeight: "700" }],
+        "display-xl": ["3.75rem", { lineHeight: "1.1",  fontWeight: "800" }],
+        "display-lg": ["3.5rem",  { lineHeight: "1.15", fontWeight: "800" }],
+        "display-md": ["2.25rem", { lineHeight: "1.25", fontWeight: "700" }],
+        "display-sm": ["1.875rem",{ lineHeight: "1.3",  fontWeight: "700" }],
       },
 
-      backgroundImage: {
-        "brand-gradient":      "linear-gradient(135deg, #2b73f0 0%, #011b40 100%)",
-        "brand-gradient-soft": "linear-gradient(135deg, #f6fcff 0%, #dbeafe 100%)",
-        "hero-pattern":        "linear-gradient(135deg, #011b40 0%, #0d2d6b 60%, #2b73f0 100%)",
+      borderRadius: {
+        sm:    "0.25rem",
+        md:    "0.5rem",
+        lg:    "0.75rem",
+        xl:    "1rem",
+        "2xl": "1.5rem",
+        "3xl": "2rem",
+        full:  "9999px",
       },
 
       boxShadow: {
-        card:    "0 1px 3px 0 rgba(43,115,240,0.08), 0 1px 2px -1px rgba(43,115,240,0.06)",
-        "card-md":"0 4px 16px 0 rgba(43,115,240,0.10), 0 2px 4px -1px rgba(43,115,240,0.06)",
-        "card-lg":"0 8px 32px 0 rgba(43,115,240,0.12), 0 4px 8px -2px rgba(43,115,240,0.08)",
+        card:         "0 2px 8px rgba(0,0,0,0.06)",
+        "card-hover": "0 8px 24px rgba(59,130,246,0.12)",
+        blue:         "0 4px 14px rgba(59,130,246,0.25)",
+        "card-md":    "0 4px 16px rgba(59,130,246,0.10)",
+        "card-lg":    "0 8px 32px rgba(59,130,246,0.12)",
+      },
+
+      backgroundImage: {
+        "dot-pattern": "radial-gradient(circle, rgba(96,165,250,0.18) 1.5px, transparent 1.5px)",
+        "dot-white":   "radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px)",
       },
 
       spacing: {
-        section: "6rem",
-        "section-sm": "4rem",
+        section:    "5rem",
+        "section-lg": "6rem",
+        "section-sm": "3rem",
+        navbar:     "70px",
+      },
+
+      animation: {
+        "pulse-dot": "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite",
+        "fade-in":   "fadeIn 0.4s ease forwards",
+      },
+
+      keyframes: {
+        fadeIn: {
+          "0%":   { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
     },
   },

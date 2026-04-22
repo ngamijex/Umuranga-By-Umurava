@@ -1,5 +1,20 @@
 import mongoose, { Document, Schema } from "mongoose";
 
+export interface IJobRequirementComparisonRow {
+  aspect: string;
+  whatJobNeeds: string;
+  whatCandidateOffers: string;
+  fitLevel: "strong" | "partial" | "weak" | "missing";
+  detail: string;
+}
+
+export interface IHrInputsAssessment {
+  howPreferencesApply: string;
+  howCriteriaApply: string;
+  howNotesApply: string;
+  overallAlignment: string;
+}
+
 export interface IScreeningResult extends Document {
   candidateId: mongoose.Types.ObjectId;
   jobId: mongoose.Types.ObjectId;
@@ -16,6 +31,10 @@ export interface IScreeningResult extends Document {
   gaps: string[];
   recommendation: "strong_yes" | "yes" | "maybe" | "no";
   aiExplanation: string;
+  /** Point-by-point job requirement vs candidate evidence */
+  jobRequirementComparisons?: IJobRequirementComparisonRow[];
+  /** How HR pipeline inputs align with this candidate */
+  hrInputsAssessment?: IHrInputsAssessment;
   rank?: number;
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +69,31 @@ const ScreeningResultSchema = new Schema<IScreeningResult>(
       required: true,
     },
     aiExplanation: { type: String, required: true },
+    jobRequirementComparisons: {
+      type: [
+        {
+          aspect: { type: String, default: "" },
+          whatJobNeeds: { type: String, default: "" },
+          whatCandidateOffers: { type: String, default: "" },
+          fitLevel: {
+            type: String,
+            enum: ["strong", "partial", "weak", "missing"],
+            default: "partial",
+          },
+          detail: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
+    hrInputsAssessment: {
+      type: {
+        howPreferencesApply: { type: String, default: "" },
+        howCriteriaApply: { type: String, default: "" },
+        howNotesApply: { type: String, default: "" },
+        overallAlignment: { type: String, default: "" },
+      },
+      required: false,
+    },
     rank: { type: Number },
   },
   { timestamps: true }

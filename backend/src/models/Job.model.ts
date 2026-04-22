@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import type { IPracticalAssessmentDefinition } from "./assessmentDefinition";
 
 export interface IJob extends Document {
   title: string;
@@ -16,6 +17,8 @@ export interface IJob extends Document {
   };
   status: "active" | "closed" | "draft";
   createdBy: mongoose.Types.ObjectId;
+  /** Optional: copied to pipeline practical stage when pipeline is first loaded */
+  practicalAssessmentTemplate?: IPracticalAssessmentDefinition;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +48,7 @@ const JobSchema = new Schema<IJob>(
       ref: "User",
       required: true,
     },
+    practicalAssessmentTemplate: { type: Schema.Types.Mixed, default: undefined },
   },
   { timestamps: true }
 );
