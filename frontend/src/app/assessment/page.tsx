@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import api from "@/lib/api";
+import api, { publicApiBaseUrl } from "@/lib/api";
 
 /* ── Brand tokens ─────────────────────────────────────────── */
 const C = {
@@ -510,7 +510,7 @@ function AssessmentForm() {
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {allResources.map((r, ri) => (
                           <a key={r.storedName}
-                            href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/public/practical/${jobId}/resources/${r.storedName}`}
+                            href={`${publicApiBaseUrl}/public/practical/${jobId}/resources/${r.storedName}`}
                             download={r.name} target="_blank" rel="noreferrer"
                             style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, background: C.primary50, border: `1px solid ${C.primary200}`, textDecoration: "none" }}>
                             {/* file icon */}

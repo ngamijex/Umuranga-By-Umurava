@@ -1,7 +1,12 @@
 import axios from "axios";
 
+/** Normalized API base (no trailing slash). Use for `fetch` / links so env is never `undefined` in the client bundle. */
+export const publicApiBaseUrl = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+).replace(/\/$/, "");
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+  baseURL: publicApiBaseUrl,
   headers: {
     "Content-Type": "application/json",
   },

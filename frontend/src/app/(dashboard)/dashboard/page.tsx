@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
-import api from "@/lib/api";
+import api, { publicApiBaseUrl } from "@/lib/api";
 import {
   LayoutDashboard, Briefcase, Zap, LogOut, User, Plus,
   Loader2, Upload, BarChart2, FileText, Check, X, ArrowRight,
@@ -1849,7 +1849,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       const form = new FormData();
       form.append("zipFile", zipFile);
       form.append("jobId", selJob._id);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidates/upload-zip`, {
+      const res = await fetch(`${publicApiBaseUrl}/candidates/upload-zip`, {
         method: "POST", body: form,
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -3353,7 +3353,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                                       {session.status === "in_progress" ? "In Progress" : session.status === "completed" ? "Completed" : session.status === "expired" ? "Expired" : "Pending"}
                                     </span>
                                     {session.hasRecording && (
-                                      <a href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/pipeline/${selJob?._id}/stage/${screeningViewIdx}/interview/sessions/${session._id}/recording`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ padding: "3px 8px", borderRadius: "6px", background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: "0.65rem", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                      <a href={`${publicApiBaseUrl}/pipeline/${selJob?._id}/stage/${screeningViewIdx}/interview/sessions/${session._id}/recording`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ padding: "3px 8px", borderRadius: "6px", background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: "0.65rem", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                                         <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polygon points="23 7 16 12 23 17 23 7"/><rect x={1} y={5} width={15} height={14} rx={2}/></svg> Watch
                                       </a>
                                     )}
