@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import api from "@/lib/api";
 import {
   LayoutDashboard, Briefcase, Zap, LogOut, User, Plus,
   Loader2, Upload, BarChart2, FileText, Check, X, ArrowRight,
-  Trash2, Pencil, ChevronDown, FileSpreadsheet, ClipboardPaste, Archive, Users, PlayCircle, Layers, CheckCircle, AlertCircle, Lock, Info, Sparkles, Eye, Mail,
+  Trash2, Pencil, ChevronDown, FileSpreadsheet, ClipboardPaste, Archive, Users, PlayCircle, Layers, CheckCircle, AlertCircle, Lock, Info, Sparkles, Eye, Mail, RotateCcw,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie, ResponsiveContainer, Legend } from "recharts";
 import {
@@ -1349,6 +1349,11 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [assessmentAiHint, setAssessmentAiHint] = useState("");
   const [assessmentGenBusy, setAssessmentGenBusy] = useState(false);
 
+  /* Rollback state */
+  const [rollbackConfirmIdx, setRollbackConfirmIdx] = useState<number | null>(null);
+  const [rollbackBusy, setRollbackBusy] = useState(false);
+  const [rollbackMsg, setRollbackMsg] = useState("");
+
   /* Hire sub-tab: applicants | screening */
   const [hireSubTab, setHireSubTab] = useState<"applicants" | "screening">("applicants");
 
@@ -1366,6 +1371,28 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     } catch { /* ignore */ }
     finally { setPipelineLoading(false); }
   }, []);
+
+  const doRollback = useCallback(async (stageIdx: number) => {
+    if (!selJob) return;
+    setRollbackBusy(true);
+    setRollbackMsg("");
+    try {
+      const { data } = await api.post(`/pipeline/${selJob._id}/stage/${stageIdx}/rollback`);
+      if (data.success) {
+        setRollbackMsg(data.message || "Stage rolled back.");
+        setRollbackConfirmIdx(null);
+        await loadPipeline(selJob._id);
+        setActiveStageIndex(stageIdx);
+        // Clear cached email drafts and practical state
+        setEmailDrafts(null);
+        setPracticalSubs([]);
+        setInterviewSessions([]);
+      } else {
+        setRollbackMsg(data.error || "Rollback failed.");
+      }
+    } catch { setRollbackMsg("Rollback failed. Please try again."); }
+    finally { setRollbackBusy(false); }
+  }, [selJob, loadPipeline]);
 
   const loadJob = useCallback(async (job: Job) => {
     setSelJob(job); setSelResult(null); setAiJudgmentModal(null); setViewApplicant(null); setLoadingC(true); setShowImportMore(false); setCandSearch(""); setExpanded({}); setColumnFilters([]); setPagination(p => ({ ...p, pageIndex: 0 }));
@@ -2528,20 +2555,21 @@ function HireTab({ jobs }: { jobs: Job[] }) {
           const activeStage = pipeline?.stages?.[viewingStageIdx];
           const isCurrentStage = viewingStageIdx === currentStageIdx;
           const isPastStage = viewingStageIdx < currentStageIdx;
-          // Get candidates for this stage: use saved candidateIds for done stages,
-          // fallback for pending stages only
+          // Get candidates for this stage: prefer saved candidateIds, then fall back to
+          // deriving the pool from the previous stage's shortlist (handles legacy data
+          // where candidateIds was not persisted, or newly created pending stages).
           const candidatesInStage = activeStage
-            ? (activeStage.status === "done"
-                ? (activeStage.candidateIds || [])
-                : (activeStage.candidateIds?.length
-                    ? activeStage.candidateIds
-                    : viewingStageIdx === 0
-                      ? candidates.map(c => c._id)
-                      : pipeline?.stages[viewingStageIdx - 1]?.shortlistedIds || []))
+            ? (activeStage.candidateIds?.length
+                ? activeStage.candidateIds
+                : viewingStageIdx === 0
+                  ? candidates.map(c => c._id)
+                  : pipeline?.stages[viewingStageIdx - 1]?.shortlistedIds || [])
             : [];
           // Convert to strings for reliable comparison (handles ObjectId vs string mismatch)
           const candidatesInStageStr = candidatesInStage.map(id => String(id));
-          const stageResults = activeStage?.status === "done"
+          // Show results for done stages (and past stages regardless of status flag).
+          // Using candidatesInStageStr to scope results to this stage's candidate pool.
+          const stageResults = (activeStage?.status === "done" || isPastStage) && candidatesInStageStr.length > 0
             ? results.filter(r => {
                 const cid = typeof r.candidateId === "string" ? r.candidateId : r.candidateId?._id;
                 return candidatesInStageStr.includes(String(cid));
@@ -2623,6 +2651,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "#2b72f0", margin: 0 }}>AI Screening Playground</h3>
                 {pipelineLoading && <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} />}
                 {pipelineMsg && <span style={{ fontSize: "0.75rem", color: "#16a34a" }}>{pipelineMsg}</span>}
+                {rollbackMsg && !rollbackConfirmIdx && <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600 }}>{rollbackMsg}</span>}
               </div>
 
               {/* Stage stepper - sequential workflow */}
@@ -2660,7 +2689,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       </div>
                       <p style={{ margin: 0, fontSize: "0.78rem", color: "#64748b" }}>{activeStage.description}</p>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       {activeStage.status === "done" ? (
                         <span style={{ padding: "4px 12px", borderRadius: "20px", background: "#dcfce7", color: "#16a34a", fontSize: "0.72rem", fontWeight: 700 }}>✓ Completed — {activeStage.shortlistedIds?.length || 0} shortlisted</span>
                       ) : activeStage.status === "running" ? (
@@ -2668,15 +2697,28 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       ) : (
                         <span style={{ padding: "4px 12px", borderRadius: "20px", background: "#dbeafe", color: "#1d4ed8", fontSize: "0.72rem", fontWeight: 700 }}>Pending</span>
                       )}
+                      {/* Rollback button — only for done stages */}
+                      {activeStage.status === "done" && (
+                        <button
+                          onClick={() => { setRollbackMsg(""); setRollbackConfirmIdx(viewingStageIdx); }}
+                          title={`Roll back to "${activeStage.name}" and redo from here`}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: "8px", background: "#FEF9C3", border: "1px solid #FDE68A", color: "#92400E", fontSize: "0.68rem", fontWeight: 700, cursor: "pointer" }}
+                        >
+                          <RotateCcw style={{ width: 11, height: 11 }} />
+                          Roll Back
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   {/* Sequential workflow info banner */}
                   {isPastStage && (
-                    <div style={{ padding: "10px 20px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Info style={{ width: "14px", height: "14px", color: "#64748b" }} />
-                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Viewing completed stage. Results are archived. Current active stage: <strong>{pipeline?.stages[currentStageIdx]?.name}</strong></span>
-                      <button onClick={() => setActiveStageIndex(currentStageIdx)} style={{ marginLeft: "auto", padding: "4px 10px", borderRadius: "6px", background: "#2b72f0", color: "#fff", border: "none", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>Go to Current Stage</button>
+                    <div style={{ padding: "10px 20px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <Info style={{ width: "14px", height: "14px", color: "#64748b", flexShrink: 0 }} />
+                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Archived stage. Current active stage: <strong>{pipeline?.stages[currentStageIdx]?.name}</strong></span>
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                        <button onClick={() => setActiveStageIndex(currentStageIdx)} style={{ padding: "4px 10px", borderRadius: "6px", background: "#2b72f0", color: "#fff", border: "none", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>Go to Current</button>
+                      </div>
                     </div>
                   )}
 
@@ -2865,93 +2907,95 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                         </p>
                       )}
 
-                      {(activeStage.type === "deep_review" || activeStage.type === "cv_screen") && activeStage.status === "done" && (activeStage.shortlistedIds?.length != null) && (
-                        <div style={{ marginTop: "18px", padding: "16px", borderRadius: "10px", border: "1px dashed #c4b5fd", background: "#faf5ff" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                            <Mail style={{ width: "16px", height: "16px", color: "#7c3aed" }} />
-                            <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#0f172a" }}>Outcome emails</span>
-                          </div>
-                          <p style={{ fontSize: "0.72rem", color: "#64748b", margin: "0 0 12px", lineHeight: 1.5 }}>
-                            Generate AI drafts for everyone in this stage&apos;s pool:
-                            <br />• <strong style={{ color: "#15803d" }}>Advance (shortlisted)</strong> — congratulations + practical assessment invitation with their personal link, deadline, format, and instructions.
-                            <br />• <strong style={{ color: "#b91c1c" }}>Regret (not selected)</strong> — warm, professional decline.
-                            <br />Make sure you have set the exam link, deadline, and instructions under <em>Practical exam settings</em> first.
-                          </p>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", marginBottom: "12px" }}>
-                            <button
-                              type="button"
-                              onClick={draftApplicantEmails}
-                              disabled={emailDraftBusy}
-                              style={{
-                                padding: "8px 14px",
-                                borderRadius: "8px",
-                                background: emailDraftBusy ? "#94a3b8" : "#7c3aed",
-                                color: "#fff",
-                                border: "none",
-                                fontSize: "0.75rem",
-                                fontWeight: 700,
-                                cursor: emailDraftBusy ? "not-allowed" : "pointer",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                              }}
-                            >
-                              {emailDraftBusy ? <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: "14px", height: "14px" }} />}
-                              Generate outcome email drafts
-                            </button>
-                            <button
-                              type="button"
-                              onClick={sendApplicantEmails}
-                              disabled={emailSendBusy || !emailDrafts?.length}
-                              style={{
-                                padding: "8px 14px",
-                                borderRadius: "8px",
-                                background: emailSendBusy || !emailDrafts?.length ? "#94a3b8" : "#16a34a",
-                                color: "#fff",
-                                border: "none",
-                                fontSize: "0.75rem",
-                                fontWeight: 700,
-                                cursor: emailSendBusy || !emailDrafts?.length ? "not-allowed" : "pointer",
-                              }}
-                            >
-                              {emailSendBusy ? "Sending…" : "Send emails"}
-                            </button>
-                            {emailOpsMsg ? <span style={{ fontSize: "0.7rem", color: "#15803d" }}>{emailOpsMsg}</span> : null}
-                          </div>
-                          {emailDrafts && emailDrafts.length > 0 && (activeStage.type === "deep_review" || activeStage.type === "cv_screen") && (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "360px", overflowY: "auto" }}>
-                              {emailDrafts.map((d, di) => (
-                                <div key={d.candidateId} style={{ padding: "12px", borderRadius: "8px", border: "1px solid #e9d5ff", background: d.kind === "advance" ? "#f0fdf4" : "#fef2f2" }}>
-                                  <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#64748b", marginBottom: "6px" }}>
-                                    {d.to} · <span style={{ color: d.kind === "advance" ? "#15803d" : "#b91c1c" }}>{d.kind === "advance" ? "Advance" : "Regret"}</span>
-                                  </div>
-                                  <label style={{ fontSize: "0.62rem", color: "#64748b" }}>Subject</label>
-                                  <input
-                                    value={d.subject}
-                                    onChange={e => {
-                                      const copy = [...emailDrafts];
-                                      copy[di] = { ...copy[di], subject: e.target.value };
-                                      setEmailDrafts(copy);
-                                    }}
-                                    style={{ width: "100%", marginBottom: "8px", padding: "6px 8px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.78rem" }}
-                                  />
-                                  <label style={{ fontSize: "0.62rem", color: "#64748b" }}>Body</label>
-                                  <textarea
-                                    value={d.body}
-                                    onChange={e => {
-                                      const copy = [...emailDrafts];
-                                      copy[di] = { ...copy[di], body: e.target.value };
-                                      setEmailDrafts(copy);
-                                    }}
-                                    rows={5}
-                                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.78rem", resize: "vertical" }}
-                                  />
-                                </div>
-                              ))}
+                      {(activeStage.type === "deep_review" || activeStage.type === "cv_screen") && activeStage.status === "done" && (activeStage.shortlistedIds?.length != null) && (() => {
+                        const sentLog = activeStage.emailLog || [];
+                        const alreadySent = sentLog.length > 0;
+                        const isCvScreen = activeStage.type === "cv_screen";
+                        return (
+                          <div style={{ marginTop: "18px", padding: "16px", borderRadius: "10px", border: `1px dashed ${alreadySent ? "#bbf7d0" : "#c4b5fd"}`, background: alreadySent ? "#f0fdf4" : "#faf5ff" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                              <Mail style={{ width: "16px", height: "16px", color: alreadySent ? "#15803d" : "#7c3aed" }} />
+                              <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#0f172a" }}>
+                                {alreadySent ? `Emails sent (${sentLog.length})` : "Outcome emails"}
+                              </span>
+                              {alreadySent && <span style={{ padding: "2px 8px", borderRadius: "10px", background: "#dcfce7", color: "#15803d", fontSize: "0.62rem", fontWeight: 700 }}>✓ DONE</span>}
                             </div>
-                          )}
-                        </div>
-                      )}
+
+                            {alreadySent ? (
+                              /* ── Sent log view ── */
+                              <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "280px", overflowY: "auto" }}>
+                                {sentLog.map((log: any, li: number) => (
+                                  <div key={li} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "8px", background: log.kind === "advance" ? "#f0fdf4" : "#fef2f2", border: `1px solid ${log.kind === "advance" ? "#bbf7d0" : "#fecaca"}` }}>
+                                    <CheckCircle style={{ width: "12px", height: "12px", color: log.kind === "advance" ? "#15803d" : "#b91c1c", flexShrink: 0 }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.to}</p>
+                                      <p style={{ margin: 0, fontSize: "0.62rem", color: "#64748b" }}>{log.subject}</p>
+                                    </div>
+                                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: log.kind === "advance" ? "#15803d" : "#b91c1c", flexShrink: 0, textTransform: "uppercase" }}>{log.kind}</span>
+                                    <span style={{ fontSize: "0.58rem", color: "#94a3b8", flexShrink: 0 }}>{new Date(log.sentAt).toLocaleDateString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              /* ── Draft & send UI ── */
+                              <>
+                                <p style={{ fontSize: "0.72rem", color: "#64748b", margin: "0 0 12px", lineHeight: 1.5 }}>
+                                  {isCvScreen
+                                    ? <>Generate AI-drafted regret emails for the <strong style={{ color: "#b91c1c" }}>rejected candidates</strong> at this stage. Shortlisted candidates will be contacted when they reach the next step.</>
+                                    : <>Generate AI drafts for everyone in this pool:
+                                        <br />• <strong style={{ color: "#15803d" }}>Shortlisted</strong> — congratulations + practical assessment invitation.
+                                        <br />• <strong style={{ color: "#b91c1c" }}>Rejected</strong> — warm, professional decline.</>
+                                  }
+                                </p>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", marginBottom: "12px" }}>
+                                  <button
+                                    type="button"
+                                    onClick={draftApplicantEmails}
+                                    disabled={emailDraftBusy}
+                                    style={{ padding: "8px 14px", borderRadius: "8px", background: emailDraftBusy ? "#94a3b8" : "#7c3aed", color: "#fff", border: "none", fontSize: "0.75rem", fontWeight: 700, cursor: emailDraftBusy ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                  >
+                                    {emailDraftBusy ? <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: "14px", height: "14px" }} />}
+                                    Generate email drafts
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={sendApplicantEmails}
+                                    disabled={emailSendBusy || !emailDrafts?.length}
+                                    style={{ padding: "8px 14px", borderRadius: "8px", background: emailSendBusy || !emailDrafts?.length ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.75rem", fontWeight: 700, cursor: emailSendBusy || !emailDrafts?.length ? "not-allowed" : "pointer" }}
+                                  >
+                                    {emailSendBusy ? "Sending…" : "Send emails"}
+                                  </button>
+                                  {emailOpsMsg ? <span style={{ fontSize: "0.7rem", color: "#15803d" }}>{emailOpsMsg}</span> : null}
+                                </div>
+                                {emailDrafts && emailDrafts.length > 0 && (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "360px", overflowY: "auto" }}>
+                                    {emailDrafts.map((d, di) => (
+                                      <div key={d.candidateId} style={{ padding: "12px", borderRadius: "8px", border: "1px solid #e9d5ff", background: d.kind === "advance" ? "#f0fdf4" : "#fef2f2" }}>
+                                        <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#64748b", marginBottom: "6px" }}>
+                                          {d.to} · <span style={{ color: d.kind === "advance" ? "#15803d" : "#b91c1c" }}>{d.kind === "advance" ? "Advance" : "Regret"}</span>
+                                        </div>
+                                        <label style={{ fontSize: "0.62rem", color: "#64748b" }}>Subject</label>
+                                        <input
+                                          value={d.subject}
+                                          onChange={e => { const copy = [...emailDrafts]; copy[di] = { ...copy[di], subject: e.target.value }; setEmailDrafts(copy); }}
+                                          style={{ width: "100%", marginBottom: "8px", padding: "6px 8px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.78rem" }}
+                                        />
+                                        <label style={{ fontSize: "0.62rem", color: "#64748b" }}>Body</label>
+                                        <textarea
+                                          value={d.body}
+                                          onChange={e => { const copy = [...emailDrafts]; copy[di] = { ...copy[di], body: e.target.value }; setEmailDrafts(copy); }}
+                                          rows={5}
+                                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.78rem", resize: "vertical" }}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                     </div>
                   )}
@@ -3419,6 +3463,57 @@ function HireTab({ jobs }: { jobs: Job[] }) {
         onClose={() => setAiJudgmentModal(null)}
       />
       <ApplicantDetailModal candidate={viewApplicant} job={selJob} onClose={() => setViewApplicant(null)} />
+
+      {/* ── Rollback confirmation modal ── */}
+      {rollbackConfirmIdx !== null && pipeline && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 36px", maxWidth: 420, width: "100%", boxShadow: "0 12px 48px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#FEF9C3", border: "1px solid #FDE68A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <RotateCcw style={{ width: 20, height: 20, color: "#92400E" }} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "#0f172a" }}>Roll back to this stage?</h3>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: "#64748b" }}>
+                  <strong>{pipeline.stages[rollbackConfirmIdx]?.name}</strong>
+                </p>
+              </div>
+            </div>
+            <div style={{ background: "#FEF9C3", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 14px", marginBottom: 20 }}>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#78350F", lineHeight: 1.6 }}>
+                All progress from <strong>{pipeline.stages[rollbackConfirmIdx]?.name}</strong> onward will be cleared:
+              </p>
+              <ul style={{ margin: "8px 0 0 16px", padding: 0, fontSize: "0.78rem", color: "#92400E", lineHeight: 1.8 }}>
+                {pipeline.stages.slice(rollbackConfirmIdx).map((s, i) => (
+                  <li key={i}>{s.name} — results, shortlists, emails</li>
+                ))}
+              </ul>
+              <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: "#92400E", fontWeight: 600 }}>
+                Candidates will be returned to this stage&apos;s pool so you can re-screen them.
+              </p>
+            </div>
+            {rollbackMsg && (
+              <p style={{ margin: "0 0 12px", fontSize: "0.78rem", color: "#dc2626", fontWeight: 600 }}>{rollbackMsg}</p>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setRollbackConfirmIdx(null); setRollbackMsg(""); }}
+                disabled={rollbackBusy}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#374151", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => doRollback(rollbackConfirmIdx)}
+                disabled={rollbackBusy}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, background: "#f59e0b", border: "none", color: "#fff", fontSize: "0.875rem", fontWeight: 700, cursor: rollbackBusy ? "not-allowed" : "pointer", opacity: rollbackBusy ? 0.7 : 1 }}
+              >
+                {rollbackBusy ? "Rolling back…" : "Yes, Roll Back"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

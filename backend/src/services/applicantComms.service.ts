@@ -14,6 +14,14 @@ export interface EmailDraft {
   body: string;
 }
 
+const SIGNATURE = `\n\nBest regards,\nThe Umuranga Hiring Team\nUmuranga | AI-Powered Talent Screening\numuranga.hire@gmail.com`;
+
+function appendSignature(body: string): string {
+  // Only append if signature not already present
+  if (body.includes("Umuranga Hiring Team")) return body;
+  return body.trimEnd() + SIGNATURE;
+}
+
 function stripJsonFence(s: string): string {
   const t = s.trim();
   if (t.startsWith("```")) {
@@ -31,7 +39,9 @@ export async function draftEmailsForStageOutcome(
   candidates: ICandidate[],
   shortlistedIds: mongoose.Types.ObjectId[],
   internalAssessmentBaseUrl?: string,
-  candidateInterviewLinks?: Record<string, string>
+  candidateInterviewLinks?: Record<string, string>,
+  /** If true, only draft regret emails — shortlisted candidates get no email at this stage */
+  regretOnly?: boolean
 ): Promise<EmailDraft[]> {
   const shortSet = new Set(shortlistedIds.map(id => String(id)));
   const byId = new Map(candidates.map(c => [String(c._id), c]));
@@ -40,17 +50,16 @@ export async function draftEmailsForStageOutcome(
   const nextType = nextStage?.type || "";
   const comms = nextApplicantComms || ({} as IApplicantComms);
 
-  // Build per-candidate rows; advance candidates get a personalised link depending on next stage type
+  // Build per-candidate rows
   const hrOverrideLink = comms.assessmentUrl?.trim();
   const rows: Array<{ id: string; name: string; email: string; kind: DraftKind; assessmentLink?: string; interviewLink?: string }> = [];
   for (const c of candidates) {
     const id = String(c._id);
     const kind: DraftKind = shortSet.has(id) ? "advance" : "regret";
+    // When regretOnly, skip advance candidates entirely
+    if (regretOnly && kind === "advance") continue;
     const row: { id: string; name: string; email: string; kind: DraftKind; assessmentLink?: string; interviewLink?: string } = {
-      id,
-      name: `${c.firstName} ${c.lastName}`.trim(),
-      email: c.email,
-      kind,
+      id, name: `${c.firstName} ${c.lastName}`.trim(), email: c.email, kind,
     };
     if (kind === "advance" && nextType === "practical") {
       row.assessmentLink = hrOverrideLink
@@ -69,7 +78,7 @@ export async function draftEmailsForStageOutcome(
 
   if (rows.length === 0) return [];
 
-  // Build the assessment/next-step context block for the AI prompt
+  // Build the next-step context block
   let nextStepBlock: string;
   if (nextType === "practical") {
     const deadline = comms.submissionDeadlineAt
@@ -77,50 +86,39 @@ export async function draftEmailsForStageOutcome(
       : "as communicated by HR";
     const format = comms.assessmentFormat?.trim() || "to be described by HR";
     nextStepBlock = `Next step is a PRACTICAL ASSESSMENT ("${nextName}").
-For ADVANCE candidates, the email must also serve as their assessment invitation:
-- Warmly congratulate them on advancing
-- Clearly state the deadline: ${deadline}
-- Briefly describe the format: ${format}
-- Tell them to use THEIR OWN personal assessment link (each advance row has an "assessmentLink" field — include it verbatim in their email)
-- They submit answers directly through that link
+For ADVANCE candidates: congratulate them, state the deadline (${deadline}), briefly describe format (${format}), include their personal assessmentLink verbatim.
 Extra HR notes: ${comms.extraInstructions || "none"}`;
   } else if (nextType === "ai_interview") {
     nextStepBlock = `Next step is an AI INTERVIEW ("${nextName}").
-For ADVANCE candidates, the email must congratulate them on passing the practical assessment AND serve as their interview invitation:
-- Warmly congratulate them on their strong practical assessment performance
-- Explain this is a live AI-conducted video interview (approximately 15–20 minutes)
-- Tell them to find a quiet, well-lit place with a reliable camera and microphone
-- Include THEIR UNIQUE personal interview link (each advance row has an "interviewLink" field — include it verbatim in the email body, clearly labelled as "Your Interview Link:")
-- They can complete the interview anytime at their convenience using that link
-- No scheduling needed — the link is always available during the interview window
+For ADVANCE candidates: congratulate them on the practical assessment, explain it's a 15–20 min live AI video interview, include their unique interviewLink verbatim labelled "Your Interview Link:".
 Extra HR notes: ${comms.extraInstructions || "none"}`;
   } else {
-    nextStepBlock = `Next step: "${nextName}".
-Extra HR notes: ${comms.extraInstructions || "none"}`;
+    nextStepBlock = `Next step: "${nextName}". Extra HR notes: ${comms.extraInstructions || "none"}`;
   }
 
-  const prompt = `You are helping HR send professional, warm, personalised applicant emails for a hiring process.
+  const prompt = `You are writing professional hiring emails on behalf of Umuranga (an AI-powered talent screening platform).
 
-Job title: ${job.title}
-Department: ${job.department}
-Stage just completed: "${completedStage.name}"
-${nextStage ? nextStepBlock : "There is no further stage — this is the final decision."}
+Job: ${job.title} — ${job.department}
+Stage completed: "${completedStage.name}"
+${nextStage ? nextStepBlock : "This is the final decision — no further stages."}
 
-For EACH candidate below, write ONE email:
-- kind "advance": congratulate them, include ALL next-step details described above (link, deadline, format, instructions). Personalised, professional, encouraging. 160–280 words.
-- kind "regret": thank them sincerely, politely decline after this stage, do not give false hope. 80–150 words.
+Write ONE personalised email per candidate:
+- kind "advance": congratulate, include all next-step details. 160–250 words.
+- kind "regret": warm, sincere decline — thank them for their time, wish them well. 80–130 words.
+
+Use ONE consistent email structure per kind (same tone and format), just personalise the name and any links/details.
+
+Do NOT include a signature block — it will be added automatically.
 
 Candidates:
 ${JSON.stringify(rows, null, 2)}
 
-Return ONLY valid JSON (no markdown) with this exact shape:
+Return ONLY valid JSON (no markdown):
 {
   "messages": [
     { "candidateId": "<id>", "kind": "advance"|"regret", "subject": "...", "body": "..." }
   ]
-}
-
-Use the same candidateId values as input. Subject lines must be clear and specific.`;
+}`;
 
   const raw = await openaiChatText(prompt, { maxRetries: 3 });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
@@ -130,47 +128,32 @@ Use the same candidateId values as input. Subject lines must be clear and specif
     throw new Error("AI returned invalid JSON for email drafts. Try again.");
   }
 
-  const out: EmailDraft[] = [];
   const list = parsed.messages || [];
-  if (!Array.isArray(list) || list.length === 0) {
-    throw new Error("No drafts returned from AI.");
-  }
+  if (!Array.isArray(list) || list.length === 0) throw new Error("No drafts returned from AI.");
 
-  // Build a map of interviewLink per candidate for post-processing
   const interviewLinkMap = new Map<string, string>();
-  for (const row of rows) {
-    if (row.interviewLink) interviewLinkMap.set(row.id, row.interviewLink);
-  }
+  for (const row of rows) { if (row.interviewLink) interviewLinkMap.set(row.id, row.interviewLink); }
 
+  const out: EmailDraft[] = [];
   for (const m of list) {
     const id = m.candidateId ? String(m.candidateId) : "";
     const cand = byId.get(id);
     if (!cand || !m.subject || !m.body) continue;
     const kind = m.kind === "regret" ? "regret" : "advance";
-
-    let body = String(m.body).trim();
+    let body = appendSignature(String(m.body).trim());
 
     // Guarantee the unique interview link is present in advance emails
     if (kind === "advance" && nextType === "ai_interview") {
       const link = interviewLinkMap.get(id);
       if (link && link !== "(HR will share the link)" && !body.includes(link)) {
-        body += `\n\n──────────────────────────\nYour Personal Interview Link:\n${link}\n──────────────────────────\n\nThis link is unique to you. Do not share it with others.`;
+        body = body.replace(SIGNATURE, "") + `\n\n──────────────────────────\nYour Personal Interview Link:\n${link}\n──────────────────────────\n\nThis link is unique to you. Do not share it with others.` + SIGNATURE;
       }
     }
 
-    out.push({
-      candidateId: id,
-      kind,
-      to: cand.email,
-      subject: String(m.subject).trim(),
-      body,
-    });
+    out.push({ candidateId: id, kind, to: cand.email, subject: String(m.subject).trim(), body });
   }
 
-  if (out.length === 0) {
-    throw new Error("Could not parse any valid drafts from AI response.");
-  }
-
+  if (out.length === 0) throw new Error("Could not parse any valid drafts from AI response.");
   return out;
 }
 
@@ -208,20 +191,22 @@ export async function draftPracticalInvitationEmails(
     };
   });
 
-  const prompt = `You are helping HR email candidates who were selected for a practical assessment.
+  const prompt = `You are writing hiring emails on behalf of Umuranga (AI-powered talent screening).
 
 Job: ${job.title} (${job.department})
 Practical stage: "${practicalStage.name}"
 
-Each candidate below must receive a professional, warm, personalised email that:
-- Congratulates them warmly on advancing to the practical assessment stage
+Each candidate below must receive a professional, warm email that:
+- Congratulates them on advancing to the practical assessment stage
 - States the submission deadline clearly: ${deadline}
-- Describes the assessment format briefly: ${format}
-- Tells them to use THEIR OWN personalised assessment link (each row has an assessmentLink field — include it verbatim in their email)
-- Mentions they will submit written answers (and files if applicable) directly through that link
+- Describes the assessment format: ${format}
+- Tells them to use THEIR OWN personal assessment link (each row has an assessmentLink — include it verbatim)
 - Extra HR notes: ${comms.extraInstructions || "none"}
 
-Candidates (each has their own personal link — use it exactly):
+Use ONE consistent email structure for all candidates — just change the name and their personal link.
+Do NOT include a signature block — it will be added automatically.
+
+Candidates (each with their own link):
 ${JSON.stringify(rows, null, 2)}
 
 Return ONLY valid JSON:
@@ -231,7 +216,7 @@ Return ONLY valid JSON:
   ]
 }
 
-kind must always be "advance". Subject and body personalised with their name. Body 150–260 words.`;
+kind always "advance". Body 130–220 words.`;
 
   const raw = await openaiChatText(prompt, { maxRetries: 3 });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
@@ -248,19 +233,13 @@ kind must always be "advance". Subject and body personalised with their name. Bo
     const id = m.candidateId ? String(m.candidateId) : "";
     const cand = byId.get(id);
     if (!cand || !m.subject || !m.body) continue;
-    let body = String(m.body).trim();
+    let body = appendSignature(String(m.body).trim());
     // Guarantee the personal assessment link is always present
     const link = linkById.get(id);
     if (link && link !== "(HR will share the link)" && !body.includes(link)) {
-      body += `\n\n──────────────────────────\nYour Personal Assessment Link:\n${link}\n──────────────────────────`;
+      body = body.replace(SIGNATURE, "") + `\n\n──────────────────────────\nYour Personal Assessment Link:\n${link}\n──────────────────────────` + SIGNATURE;
     }
-    out.push({
-      candidateId: id,
-      kind: "advance",
-      to: cand.email,
-      subject: String(m.subject).trim(),
-      body,
-    });
+    out.push({ candidateId: id, kind: "advance", to: cand.email, subject: String(m.subject).trim(), body });
   }
 
   if (out.length === 0) {

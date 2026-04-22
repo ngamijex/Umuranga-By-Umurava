@@ -5,7 +5,23 @@ import multer from "multer";
 import { InterviewSession } from "../models/InterviewSession.model";
 import { Job } from "../models/Job.model";
 import { Candidate } from "../models/Candidate.model";
-import { getAIResponse, gradeInterview, buildOpeningMessage } from "../services/interview.service";
+import { getAIResponse, gradeInterview, buildOpeningMessage, type CandidateProfile } from "../services/interview.service";
+
+/** Build a CandidateProfile from a Mongoose candidate document */
+function toCandidateProfile(c: any): CandidateProfile {
+  return {
+    name: `${c.firstName || ""} ${c.lastName || ""}`.trim(),
+    headline: c.headline,
+    bio: c.bio,
+    location: c.location,
+    skills: c.skills || [],
+    experience: c.experience || [],
+    education: c.education || [],
+    projects: c.projects || [],
+    certifications: c.certifications || [],
+    resumeText: c.resumeText,
+  };
+}
 
 const router = Router();
 
@@ -74,19 +90,22 @@ router.post("/:token/start", async (req: Request, res: Response): Promise<void> 
       res.status(400).json({ success: false, error: "Interview already completed." }); return;
     }
 
-    const job = await Job.findById(session.jobId);
+    const [job, candidateDoc] = await Promise.all([
+      Job.findById(session.jobId),
+      Candidate.findById(session.candidateId).lean(),
+    ]);
     if (!job) { res.status(404).json({ success: false, error: "Job not found." }); return; }
+
+    const candidateProfile = candidateDoc ? toCandidateProfile(candidateDoc) : undefined;
 
     if (session.status === "pending") {
       session.status = "in_progress";
       session.startedAt = new Date();
-      // Push the opening AI message into the transcript
-      const opening = buildOpeningMessage(job, session.interviewQuestions[0] || "Tell me about yourself.");
+      const opening = await buildOpeningMessage(job, session.interviewQuestions[0] || "Tell me about yourself.", candidateProfile);
       session.transcript.push({ speaker: "ai", text: opening, timestamp: new Date() });
       await session.save();
     }
 
-    // Return the latest AI message (opening or last AI turn if resuming)
     const lastAiMsg = [...session.transcript].reverse().find(t => t.speaker === "ai");
 
     res.json({
@@ -117,18 +136,24 @@ router.post("/:token/turn", async (req: Request, res: Response): Promise<void> =
       res.status(400).json({ success: false, error: "Candidate answer text is required." }); return;
     }
 
-    const job = await Job.findById(session.jobId);
+    const [job, candidateDoc] = await Promise.all([
+      Job.findById(session.jobId),
+      Candidate.findById(session.candidateId).lean(),
+    ]);
     if (!job) { res.status(404).json({ success: false, error: "Job not found." }); return; }
+
+    const candidateProfile = candidateDoc ? toCandidateProfile(candidateDoc) : undefined;
 
     // Append candidate turn
     session.transcript.push({ speaker: "candidate", text: candidateText, timestamp: new Date() });
 
-    // Get AI response
+    // Get AI response — pass candidate profile so AI can reference their background
     const { message, isComplete } = await getAIResponse(
       job,
       session.interviewQuestions,
       session.transcript.slice(0, -1), // transcript before latest candidate turn
-      candidateText
+      candidateText,
+      candidateProfile
     );
 
     // Append AI response
@@ -143,7 +168,7 @@ router.post("/:token/turn", async (req: Request, res: Response): Promise<void> =
 
     // Async grading when completed (non-blocking)
     if (isComplete && !session.score) {
-      gradeInterview(job, session.transcript)
+      gradeInterview(job, session.transcript, candidateProfile)
         .then(score => InterviewSession.findByIdAndUpdate(session._id, { score }))
         .catch(e => console.error("[interview] grading failed:", e?.message));
     }

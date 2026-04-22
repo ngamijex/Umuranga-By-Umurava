@@ -7,30 +7,100 @@ function stripJsonFence(s: string): string {
   return t.startsWith("```") ? t.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim() : t;
 }
 
+/** Candidate profile summary passed to all AI prompts */
+export interface CandidateProfile {
+  name: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills?: { name: string; level: string; yearsOfExperience: number }[];
+  experience?: { company: string; role: string; startDate: string; endDate: string; description: string; technologies: string[]; isCurrent: boolean }[];
+  education?: { institution: string; degree: string; fieldOfStudy: string; startYear: number; endYear: number }[];
+  projects?: { name: string; description: string; technologies: string[]; role: string }[];
+  certifications?: { name: string; issuer: string }[];
+  resumeText?: string;
+}
+
+/** Build a concise candidate context block for AI prompts */
+function buildCandidateContext(c: CandidateProfile): string {
+  const lines: string[] = [`Candidate: ${c.name}`];
+
+  if (c.headline) lines.push(`Headline: ${c.headline}`);
+  if (c.location) lines.push(`Location: ${c.location}`);
+  if (c.bio) lines.push(`Bio: ${c.bio.slice(0, 300)}`);
+
+  if (c.skills?.length) {
+    const top = c.skills
+      .sort((a, b) => b.yearsOfExperience - a.yearsOfExperience)
+      .slice(0, 10)
+      .map(s => `${s.name} (${s.level}, ${s.yearsOfExperience}yr${s.yearsOfExperience !== 1 ? "s" : ""})`)
+      .join(", ");
+    lines.push(`Skills: ${top}`);
+  }
+
+  if (c.experience?.length) {
+    lines.push("Work Experience:");
+    c.experience.slice(0, 4).forEach(e => {
+      const dates = e.isCurrent ? `${e.startDate} – present` : `${e.startDate} – ${e.endDate}`;
+      lines.push(`  • ${e.role} at ${e.company} (${dates})`);
+      if (e.description) lines.push(`    ${e.description.slice(0, 200)}`);
+      if (e.technologies?.length) lines.push(`    Tech: ${e.technologies.join(", ")}`);
+    });
+  }
+
+  if (c.education?.length) {
+    lines.push("Education:");
+    c.education.slice(0, 3).forEach(ed => {
+      lines.push(`  • ${ed.degree} in ${ed.fieldOfStudy} — ${ed.institution} (${ed.startYear}–${ed.endYear})`);
+    });
+  }
+
+  if (c.projects?.length) {
+    lines.push("Notable Projects:");
+    c.projects.slice(0, 3).forEach(p => {
+      lines.push(`  • ${p.name} (${p.role}): ${p.description.slice(0, 150)}`);
+      if (p.technologies?.length) lines.push(`    Tech: ${p.technologies.join(", ")}`);
+    });
+  }
+
+  if (c.certifications?.length) {
+    lines.push(`Certifications: ${c.certifications.map(ce => `${ce.name} (${ce.issuer})`).join(", ")}`);
+  }
+
+  // Include raw resume text as extra context if structured data is sparse
+  const hasStructured = (c.experience?.length || 0) + (c.skills?.length || 0) + (c.projects?.length || 0);
+  if (hasStructured < 3 && c.resumeText) {
+    lines.push(`CV Extract:\n${c.resumeText.slice(0, 1500)}`);
+  }
+
+  return lines.join("\n");
+}
+
 /**
  * Generate conversation areas/topics for the AI to explore naturally.
  * These are NOT rigid questions to ask in order — they are themes to weave
  * into a natural, free-flowing conversation.
  */
-export async function generateInterviewQuestions(job: IJob): Promise<string[]> {
+export async function generateInterviewQuestions(job: IJob, candidate?: CandidateProfile): Promise<string[]> {
   const skills = (job.requiredSkills || []).join(", ") || "not specified";
-  const desc = String(job.description || "").slice(0, 2000);
+  const desc = String(job.description || "").slice(0, 1500);
+  const candCtx = candidate ? `\n\nCandidate profile:\n${buildCandidateContext(candidate)}` : "";
 
   const prompt = `You are preparing for a natural, conversational interview for the role of "${job.title}" (${job.department}).
 
 Job description summary:
 ${desc}
 
-Key skills: ${skills}
+Key skills required: ${skills}${candCtx}
 
-Generate 6–8 conversation TOPICS/AREAS to explore naturally in a flowing discussion.
-These are NOT formal questions — they are themes the interviewer should weave into conversation, like a real human interviewer would.
-Each topic should be broad enough to allow natural follow-up.
+Generate 6–8 conversation TOPICS/AREAS personalised to this candidate's background.
+These are NOT formal questions — they are themes to weave naturally into conversation.
+Where relevant, reference specific things from the candidate's experience, projects, or skills.
 
 Examples of good topics:
-- "Their background and journey into this field"
-- "How they handle pressure and unexpected problems"
-- "Their experience with [specific skill from the role]"
+- "Dig into their experience at [Company] — what they built and what they learned"
+- "Their hands-on use of [specific skill they listed] and how deep it goes"
+- "That project '[Project Name]' — what challenges came up and how they handled it"
 
 Return ONLY a JSON array of topic strings (no markdown fence):
 ["topic 1", "topic 2", ...]`;
@@ -61,7 +131,8 @@ export async function getAIResponse(
   job: IJob,
   topics: string[],
   transcript: IInterviewTurn[],
-  candidateMessage: string
+  candidateMessage: string,
+  candidate?: CandidateProfile
 ): Promise<{ message: string; isComplete: boolean }> {
 
   const topicList = topics.map((t, i) => `${i + 1}. ${t}`).join("\n");
@@ -72,18 +143,21 @@ export async function getAIResponse(
   const exchangeCount = transcript.filter(t => t.speaker === "candidate").length;
   const shouldWrapUp = exchangeCount >= topics.length + 1;
 
-  const prompt = `You are a warm, natural HR interviewer having a real human conversation with a candidate for the "${job.title}" role.
+  const candCtx = candidate ? `\nCANDIDATE PROFILE (use this to ask specific, informed follow-ups):\n${buildCandidateContext(candidate)}\n` : "";
 
-IMPORTANT — you must behave like a real person talking, NOT like a chatbot reading from a script:
-- React genuinely to what they just said (be curious, interested, surprised when appropriate)
-- Ask follow-up questions if something they said is interesting or unclear
-- Transition smoothly between topics — don't announce "Next question:"
-- Speak in short, natural sentences — like how people actually talk
-- Never say "Great answer!", "Excellent!", or hollow praise — be genuine
-- Never list multiple questions at once — ask one thing and wait
-- Keep your response to 2–4 sentences maximum
+  const prompt = `You are a warm, natural HR interviewer having a real human conversation with ${candidate?.name || "a candidate"} for the "${job.title}" role.
+${candCtx}
+IMPORTANT — behave like a real person, NOT a scripted chatbot:
+- You already know the candidate's background (see profile above). Use it! Reference specific experiences, projects, or companies they've worked at.
+- Ask follow-up questions that show you read their CV — e.g. "I noticed you worked on [X], how did that go?"
+- If they mention something vague, ask for clarification based on what you know about their background
+- React genuinely — be curious, interested, or surprised when appropriate
+- Never say "Great answer!" or hollow praise — be natural and real
+- Never list multiple questions at once
+- Speak in short, natural sentences — 2–4 sentences maximum
+- Don't announce topic changes — transition smoothly
 
-Topics to naturally weave into the conversation (you don't have to cover all of them, and not in order):
+Topics to naturally weave into the conversation (you don't have to cover all of them, not in order):
 ${topicList}
 
 Conversation so far:
@@ -92,8 +166,8 @@ ${historyText || "(you just introduced yourself)"}
 Candidate just said: "${candidateMessage}"
 
 ${shouldWrapUp
-  ? `You have had ${exchangeCount} exchanges and covered the main topics. Wrap up warmly and naturally — thank them, say a brief kind word, and let them know the team will be in touch. Set isComplete to true.`
-  : `Continue the conversation naturally. React to what they said, then guide to a new area if the current topic is exhausted. Keep it flowing.`
+  ? `You have had ${exchangeCount} exchanges and covered the main topics. Wrap up warmly — thank ${candidate?.name || "them"} by name, say a brief genuine word about the chat, and let them know the team will be in touch. Set isComplete to true.`
+  : `Continue the conversation naturally. React to what they said. If it connects to something in their profile (a project, a role, a skill), dig into that specifically.`
 }
 
 Return ONLY valid JSON (no markdown fence):
@@ -117,7 +191,8 @@ Return ONLY valid JSON (no markdown fence):
 /** AI grades the full interview transcript */
 export async function gradeInterview(
   job: IJob,
-  transcript: IInterviewTurn[]
+  transcript: IInterviewTurn[],
+  candidate?: CandidateProfile
 ): Promise<IInterviewScore> {
   const candidateTurns = transcript
     .filter(t => t.speaker === "candidate")
@@ -132,8 +207,10 @@ export async function gradeInterview(
     };
   }
 
-  const prompt = `You are an expert hiring assessor. Evaluate a conversational job interview for the role of "${job.title}" (${job.department}).
+  const candCtx = candidate ? `\nCandidate background:\n${buildCandidateContext(candidate)}\n` : "";
 
+  const prompt = `You are an expert hiring assessor. Evaluate a conversational job interview for the role of "${job.title}" (${job.department}).
+${candCtx}
 Required skills: ${(job.requiredSkills || []).join(", ")}
 
 Candidate's responses (in conversation order):
@@ -183,7 +260,31 @@ Return ONLY valid JSON (no markdown fence):
   }
 }
 
-/** Opening message — warm, natural, conversational */
-export function buildOpeningMessage(job: IJob, _firstTopic: string): string {
-  return `Hi there! Thanks for joining. I'm your interviewer today. We're just going to have a relaxed chat about your background and experience for the ${job.title} role. Nothing too formal — just talk naturally. So, to kick things off, why don't you tell me a little about yourself?`;
+/** Opening message — AI-generated, warm, natural, personalised */
+export async function buildOpeningMessage(job: IJob, _firstTopic: string, candidate?: CandidateProfile): Promise<string> {
+  const candCtx = candidate ? buildCandidateContext(candidate) : "";
+  const firstName = candidate?.name ? candidate.name.split(" ")[0] : "";
+
+  const prompt = `You are an HR interviewer about to start a relaxed, natural video conversation with ${firstName || "a candidate"} for the "${job.title}" role at ${job.department || "the company"}.
+${candCtx ? `\nCandidate profile:\n${candCtx}\n` : ""}
+Write a short, natural, warm opening greeting — the very first thing you say to kick off the interview.
+
+Rules:
+- Greet them by first name (${firstName || "use a friendly generic greeting"})
+- Sound like a real person, not a script — casual and warm
+- Briefly mention the role
+- Reference ONE specific detail from their background (a past company, a skill, a project) if available — to show you've actually looked at their profile
+- End with an open invitation for them to introduce themselves — but phrase it naturally, not as a formal question
+- 2–4 sentences MAXIMUM
+- Do NOT say "Great to meet you" or hollow openers
+- Return ONLY the spoken text, no quotes, no formatting`;
+
+  try {
+    const text = await openaiChatText(prompt, { maxRetries: 2 });
+    if (text && text.trim().length > 10) return text.trim();
+  } catch { /* fall through to fallback */ }
+
+  // Fallback if AI fails
+  const name = firstName ? ` ${firstName}` : "";
+  return `Hey${name}, welcome! I'm glad you could make it. We're just going to have a casual chat about your experience for the ${job.title} role — nothing too formal. Go ahead and tell me a bit about yourself.`;
 }

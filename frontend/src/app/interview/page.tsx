@@ -131,32 +131,6 @@ function ScoreRing({ value, label, color }: { value: number; label: string; colo
   );
 }
 
-/* ── Control button ── */
-function CtrlBtn({ icon, label, active, danger, onClick, disabled }: {
-  icon: React.ReactNode; label: string; active?: boolean; danger?: boolean; onClick: () => void; disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      style={{
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-        padding: "10px 16px", borderRadius: 14,
-        background: danger ? C.red : active ? C.primary50 : C.gray100,
-        border: `1px solid ${danger ? C.red : active ? C.primary200 : C.gray200}`,
-        color: danger ? C.white : active ? C.primary : C.gray700,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        transition: "all 0.15s",
-        minWidth: 64,
-      }}
-    >
-      {icon}
-      <span style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>{label}</span>
-    </button>
-  );
-}
 
 export default function InterviewPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -209,7 +183,12 @@ export default function InterviewPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.muted = true; }
+      // Attach immediately if the video element is already mounted
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.muted = true;
+        videoRef.current.play().catch(() => {});
+      }
       const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8,opus" });
       recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.start(1000);
@@ -217,6 +196,15 @@ export default function InterviewPage() {
       return true;
     } catch { return false; }
   }, []);
+
+  /* Attach stream to video element once the live phase renders it */
+  useEffect(() => {
+    if (phase === "live" && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [phase]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -485,28 +473,149 @@ export default function InterviewPage() {
         </div>
       )}
 
-      {/* ── Main area ── */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px 100px", position: "relative" }}>
+      {/* ── Main area — two-panel split ── */}
+      <div style={{ flex: 1, display: "flex", alignItems: "stretch", padding: "20px", gap: 16, maxWidth: 1280, margin: "0 auto", width: "100%" }}>
 
-        {/* AI panel */}
+        {/* ── Left: Candidate camera — wide horizontal rectangle ── */}
         <div style={{
+          flex: "3 1 0",       /* takes 3× the space of the AI panel */
+          minWidth: 0,
+          borderRadius: 20,
+          overflow: "visible", /* allow controls to overflow if needed */
+          background: C.gray900,
+          border: `2px solid ${status === "listening" ? C.green : "transparent"}`,
+          boxShadow: status === "listening" ? `0 0 0 4px ${C.green50}, 0 4px 32px rgba(0,0,0,0.18)` : "0 4px 32px rgba(0,0,0,0.18)",
+          transition: "border-color 0.3s, box-shadow 0.3s",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          aspectRatio: "16/7",
+          alignSelf: "flex-start",
+        }}>
+          {/* inner clip so video stays inside rounded corners */}
+          <div style={{ position: "absolute", inset: 0, borderRadius: 20, overflow: "hidden" }}>
+            {/* Video feed */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: "100%", height: "100%",
+                objectFit: "cover",
+                transform: "scaleX(-1)",
+                display: cameraOn ? "block" : "none",
+              }}
+            />
+
+            {/* Camera off placeholder */}
+            {!cameraOn && (
+              <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                {Ic.cameraOff(C.gray500)}
+                <span style={{ color: C.gray500, fontSize: "0.78rem", fontWeight: 600 }}>Camera off</span>
+              </div>
+            )}
+
+            {/* YOU label — top left */}
+            <div style={{ position: "absolute", top: 14, left: 16, zIndex: 10 }}>
+              <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "rgba(255,255,255,0.9)", background: "rgba(0,0,0,0.45)", padding: "3px 10px", borderRadius: 8, backdropFilter: "blur(4px)" }}>YOU</span>
+            </div>
+
+            {/* REC badge — top right */}
+            <div style={{ position: "absolute", top: 14, right: 16, zIndex: 10, display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.45)", padding: "3px 10px", borderRadius: 8, backdropFilter: "blur(4px)" }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: C.red, animation: "pulse 2s ease-in-out infinite" }} />
+              <span style={{ color: C.white, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.06em" }}>REC</span>
+            </div>
+
+            {/* Live speech preview */}
+            {status === "listening" && liveCapture && (
+              <div style={{
+                position: "absolute", bottom: 72, left: 16, right: 16, zIndex: 10,
+                background: "rgba(34,197,94,0.18)",
+                border: `1px solid ${C.green200}`,
+                backdropFilter: "blur(6px)",
+                borderRadius: 10,
+                padding: "8px 12px",
+                fontSize: "0.82rem",
+                color: C.white,
+                lineHeight: 1.5,
+              }}>
+                {liveCapture}
+              </div>
+            )}
+
+            {/* ── Controls — bottom center, no background ── */}
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 20,
+              display: "flex", alignItems: "flex-end", justifyContent: "center",
+              gap: 28, paddingBottom: 16,
+              background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)",
+              paddingTop: 32,
+            }}>
+              {/* Mic */}
+              <button
+                onClick={() => { if (status === "idle" && aiMsg) startListening(); }}
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
+              >
+                {status === "listening" ? Ic.mic(C.green) : Ic.mic("rgba(255,255,255,0.9)")}
+                <span style={{ fontSize: "0.58rem", fontWeight: 700, color: status === "listening" ? C.green : "rgba(255,255,255,0.75)", letterSpacing: "0.04em" }}>
+                  {status === "listening" ? "Listening" : "Mic"}
+                </span>
+              </button>
+
+              {/* Captions */}
+              <button
+                onClick={() => setCaptionsOn(v => !v)}
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, opacity: captionsOn ? 1 : 0.5 }}
+              >
+                {Ic.captions(captionsOn ? C.white : "rgba(255,255,255,0.8)")}
+                <span style={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: "0.04em" }}>Captions</span>
+              </button>
+
+              {/* Camera */}
+              <button
+                onClick={toggleCameraTrack}
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, opacity: cameraOn ? 1 : 0.5 }}
+              >
+                {cameraOn ? Ic.camera("rgba(255,255,255,0.9)") : Ic.cameraOff("rgba(255,255,255,0.7)")}
+                <span style={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: "0.04em" }}>{cameraOn ? "Camera" : "Camera off"}</span>
+              </button>
+
+              {/* End interview */}
+              <button
+                onClick={() => setShowEndConfirm(true)}
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
+              >
+                {Ic.phone(C.red)}
+                <span style={{ fontSize: "0.58rem", fontWeight: 700, color: C.red, letterSpacing: "0.04em" }}>End</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: AI panel — narrower ── */}
+        <div style={{
+          flex: "1 1 0",
+          minWidth: 260,
+          maxWidth: 340,
           background: C.white,
-          borderRadius: 24,
+          borderRadius: 20,
           border: `1px solid ${C.gray200}`,
-          boxShadow: "0 4px 32px rgba(0,0,0,0.07)",
-          padding: "40px 48px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
+          padding: "28px 24px",
           textAlign: "center",
-          maxWidth: 480,
-          width: "100%",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          justifyContent: "center",
           gap: 0,
+          alignSelf: "flex-start",
         }}>
           {/* AI avatar */}
-          <div style={{ position: "relative", marginBottom: 16 }}>
+          <div style={{ position: "relative", marginBottom: 14 }}>
             <div style={{
-              width: 200, height: 200,
+              width: 180, height: 180,
               borderRadius: "50%",
               overflow: "hidden",
               border: `4px solid ${status === "ai_speaking" ? C.primary : status === "listening" ? C.green : C.gray200}`,
@@ -519,25 +628,17 @@ export default function InterviewPage() {
             }}>
               {status === "ai_speaking" ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src="/talk.gif"
-                  alt="AI speaking"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
+                <img src="/talk.gif" alt="AI speaking" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                /* Static avatar when not speaking */
                 <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: C.primary50 }}>
-                  <svg width={80} height={80} viewBox="0 0 24 24" fill="none" stroke={C.primary200} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                    <circle cx={12} cy={7} r={4}/>
+                  <svg width={72} height={72} viewBox="0 0 24 24" fill="none" stroke={C.primary200} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx={12} cy={7} r={4}/>
                   </svg>
                 </div>
               )}
             </div>
-
-            {/* Status dot */}
             <div style={{
-              position: "absolute", bottom: 10, right: 10,
+              position: "absolute", bottom: 8, right: 8,
               width: 18, height: 18, borderRadius: "50%",
               border: "3px solid white",
               background: status === "ai_speaking" ? C.primary : status === "listening" ? C.green : status === "processing" ? C.amber : C.gray300,
@@ -545,30 +646,19 @@ export default function InterviewPage() {
             }} />
           </div>
 
-          {/* Name + wave */}
-          <p style={{ margin: "0 0 6px", fontSize: "0.82rem", fontWeight: 700, color: C.gray700 }}>AI Interviewer</p>
+          <p style={{ margin: "0 0 4px", fontSize: "0.85rem", fontWeight: 700, color: C.gray700 }}>AI Interviewer</p>
 
-          {/* Speaking wave */}
-          {status === "ai_speaking" && (
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 24, marginBottom: 6, justifyContent: "center" }}>
-              {[1,2,3,4,5].map(n => <div key={n} className="wv" style={{ background: C.primary }} />)}
+          {/* Speaking / processing wave */}
+          {(status === "ai_speaking" || status === "processing") && (
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 22, marginBottom: 4, justifyContent: "center" }}>
+              {[1,2,3,4,5].map(n => <div key={n} className="wv" style={{ background: status === "ai_speaking" ? C.primary : C.gray300 }} />)}
             </div>
           )}
 
-          {/* Processing dots */}
-          {status === "processing" && (
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 24, marginBottom: 6, justifyContent: "center" }}>
-              {[1,2,3,4,5].map(n => <div key={n} className="wv" style={{ background: C.gray300 }} />)}
-            </div>
-          )}
-
-          {/* Status text */}
           <p style={{
-            margin: "4px 0 20px",
-            fontSize: "0.72rem",
-            fontWeight: 600,
+            margin: "4px 0 18px",
+            fontSize: "0.72rem", fontWeight: 600, letterSpacing: "0.04em",
             color: status === "ai_speaking" ? C.primary : status === "listening" ? C.green : status === "processing" ? C.amber : C.gray400,
-            letterSpacing: "0.04em",
           }}>
             {status === "ai_speaking" ? "Speaking…" : status === "listening" ? "Listening — speak now" : status === "processing" ? "Processing…" : "Waiting"}
           </p>
@@ -577,141 +667,31 @@ export default function InterviewPage() {
           {captionsOn && aiMsg && (
             <div style={{
               width: "100%",
-              background: C.gray900,
-              color: C.white,
-              borderRadius: 12,
-              padding: "14px 18px",
-              fontSize: "0.875rem",
-              lineHeight: 1.7,
-              textAlign: "left",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-              marginBottom: 4,
+              background: C.gray900, color: C.white,
+              borderRadius: 12, padding: "14px 18px",
+              fontSize: "0.875rem", lineHeight: 1.7, textAlign: "left",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.15)", marginBottom: 4,
             }}>
               {aiMsg}
             </div>
           )}
 
-          {/* Live capture — what candidate is saying */}
-          {status === "listening" && liveCapture && (
-            <div style={{
-              width: "100%",
-              marginTop: 8,
-              background: C.green50,
-              border: `1px solid ${C.green200}`,
-              borderRadius: 10,
-              padding: "10px 14px",
-              fontSize: "0.82rem",
-              color: C.gray700,
-              textAlign: "left",
-              lineHeight: 1.6,
-            }}>
-              <span style={{ fontSize: "0.6rem", fontWeight: 700, color: C.green, display: "block", marginBottom: 4 }}>YOU</span>
-              {liveCapture}
-            </div>
-          )}
-
-          {/* Speak again button (idle, after AI finished) */}
+          {/* Speak again button */}
           {status === "idle" && aiMsg && hasSpeech && (
             <button
               onClick={startListening}
               style={{
-                marginTop: 12,
-                padding: "9px 22px",
-                borderRadius: 50,
-                background: C.primary50,
-                border: `1px solid ${C.primary200}`,
-                color: C.primary,
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
+                marginTop: 14, padding: "9px 22px", borderRadius: 50,
+                background: C.primary50, border: `1px solid ${C.primary200}`,
+                color: C.primary, fontSize: "0.78rem", fontWeight: 700,
+                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7,
               }}
             >
-              {Ic.mic(C.primary)}
-              Tap to speak
+              {Ic.mic(C.primary)} Tap to speak
             </button>
           )}
         </div>
 
-        {/* Candidate camera — floating PiP */}
-        <div style={{
-          position: "fixed",
-          bottom: 90,
-          right: 24,
-          width: 176,
-          borderRadius: 14,
-          overflow: "hidden",
-          border: `2px solid ${C.gray200}`,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-          background: C.gray900,
-          aspectRatio: "4/3",
-          display: cameraOn ? "block" : "none",
-        }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", display: "block" }}
-          />
-          <div style={{ position: "absolute", top: 7, left: 9 }}>
-            <span style={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.75)", background: "rgba(0,0,0,0.4)", padding: "2px 7px", borderRadius: 8 }}>YOU</span>
-          </div>
-          <div style={{ position: "absolute", top: 7, right: 9, display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.4)", padding: "2px 7px", borderRadius: 8 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.red, animation: "pulse 2s ease-in-out infinite" }} />
-            <span style={{ color: C.white, fontSize: "0.55rem", fontWeight: 700 }}>REC</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Control bar ── */}
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
-        background: C.white,
-        borderTop: `1px solid ${C.gray200}`,
-        padding: "10px 0 14px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap", padding: "0 16px" }}>
-
-          {/* Mic status indicator */}
-          <CtrlBtn
-            icon={status === "listening" ? Ic.mic(C.primary) : Ic.mic(C.gray500)}
-            label={status === "listening" ? "Listening" : "Mic"}
-            active={status === "listening"}
-            onClick={() => {
-              if (status === "idle" && aiMsg) startListening();
-            }}
-          />
-
-          {/* Captions toggle */}
-          <CtrlBtn
-            icon={Ic.captions(captionsOn ? C.primary : C.gray500)}
-            label="Captions"
-            active={captionsOn}
-            onClick={() => setCaptionsOn(v => !v)}
-          />
-
-          {/* Camera toggle */}
-          <CtrlBtn
-            icon={cameraOn ? Ic.camera(C.gray600) : Ic.cameraOff()}
-            label={cameraOn ? "Camera on" : "Camera off"}
-            active={false}
-            onClick={toggleCameraTrack}
-          />
-
-          {/* Divider */}
-          <div style={{ width: 1, height: 40, background: C.gray200, margin: "0 4px" }} />
-
-          {/* End interview */}
-          <CtrlBtn
-            icon={Ic.phone()}
-            label="End Interview"
-            danger
-            onClick={() => setShowEndConfirm(true)}
-          />
-        </div>
       </div>
     </div>
   );

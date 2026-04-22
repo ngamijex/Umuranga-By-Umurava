@@ -645,15 +645,12 @@ router.post("/:jobId/stage/:idx/emails/draft", async (req: AuthRequest, res: Res
       const nextComms = nextStage?.applicantComms;
       const fe = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
       const internalBase = `${fe}/assessment`;
+      // cv_screen: shortlisted candidates proceed silently to deep review — only rejected need an email
+      const regretOnly = stage.type === "cv_screen";
       const drafts = await draftEmailsForStageOutcome(
-        job,
-        stage,
-        idx,
-        nextStage,
-        nextComms,
-        candidates,
+        job, stage, idx, nextStage, nextComms, candidates,
         (stage.shortlistedIds || []).map(id => new mongoose.Types.ObjectId(String(id))),
-        internalBase
+        internalBase, undefined, regretOnly
       );
       res.json({
         success: true,
@@ -662,6 +659,7 @@ router.post("/:jobId/stage/:idx/emails/draft", async (req: AuthRequest, res: Res
           emailConfigured: isEmailConfigured(),
           nextStageName: nextStage?.name,
           draftKind: "stage_outcome",
+          regretOnly,
         },
       });
       return;
@@ -830,6 +828,108 @@ router.post("/:jobId/stage/:idx/practical/grade-one/:submissionId", async (req: 
       .populate("candidateId", "firstName lastName email")
       .sort({ compareRank: 1, score: -1 }).lean();
     res.json({ success: true, data: { graded: 1, submissions: subs } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ══════════════════════════════════════════════════════════
+   ROLLBACK — revert to a specific stage and redo from there
+   ══════════════════════════════════════════════════════════ */
+
+/**
+ * POST /pipeline/:jobId/stage/:idx/rollback
+ *
+ * Rolls the pipeline back to stage :idx.
+ * - Stages from :idx onward are reset to "pending"
+ * - The target stage's candidateIds are repopulated from the previous stage's shortlist
+ * - Candidate rejection flags for stages >= :idx are cleared
+ * - PracticalSubmissions and InterviewSessions for affected stages are deleted
+ */
+router.post("/:jobId/stage/:idx/rollback", async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
+    if (!pipeline) { res.status(404).json({ success: false, error: "Pipeline not found." }); return; }
+
+    const targetIdx = parseInt(req.params.idx);
+    if (isNaN(targetIdx) || targetIdx < 0 || targetIdx >= pipeline.stages.length) {
+      res.status(400).json({ success: false, error: "Invalid stage index." }); return;
+    }
+
+    // Must be rolling back — can only rollback to a stage that is at or before the current stage
+    if (targetIdx >= pipeline.currentStageIndex && pipeline.stages[targetIdx].status === "pending") {
+      res.status(400).json({ success: false, error: "Stage has not been started yet. Nothing to roll back." }); return;
+    }
+
+    // Determine which stage types are being rolled back (for data cleanup)
+    const rolledBackTypes = pipeline.stages.slice(targetIdx).map(s => s.type);
+    const rollsBackPractical = rolledBackTypes.includes("practical");
+    const rollsBackInterview = rolledBackTypes.includes("ai_interview");
+
+    // ── 1. Collect all candidate IDs that were in rolled-back stages ──
+    const affectedCandidateIds = new Set<string>();
+    for (let i = targetIdx; i < pipeline.stages.length; i++) {
+      (pipeline.stages[i].candidateIds || []).forEach(id => affectedCandidateIds.add(String(id)));
+      (pipeline.stages[i].shortlistedIds || []).forEach(id => affectedCandidateIds.add(String(id)));
+    }
+
+    // ── 2. Determine the candidate pool for the target stage ──
+    let poolForTarget: mongoose.Types.ObjectId[] = [];
+    if (targetIdx === 0) {
+      // First stage: all candidates for the job
+      const allCands = await Candidate.find({ jobId: req.params.jobId }).select("_id").lean();
+      poolForTarget = allCands.map(c => c._id as mongoose.Types.ObjectId);
+    } else {
+      // Target stage: use shortlistedIds of the previous stage
+      poolForTarget = (pipeline.stages[targetIdx - 1].shortlistedIds || []) as mongoose.Types.ObjectId[];
+    }
+
+    // ── 3. Reset stages from targetIdx onward ──
+    for (let i = targetIdx; i < pipeline.stages.length; i++) {
+      pipeline.stages[i].status = "pending";
+      pipeline.stages[i].shortlistedIds = [];
+      pipeline.stages[i].candidateIds = i === targetIdx ? poolForTarget : [];
+      pipeline.stages[i].ranAt = undefined;
+    }
+    pipeline.currentStageIndex = targetIdx;
+    pipeline.markModified("stages");
+    await pipeline.save();
+
+    // ── 4. Clean up dependent data ──
+    if (rollsBackPractical) {
+      await PracticalSubmission.deleteMany({ jobId: req.params.jobId });
+    }
+    if (rollsBackInterview) {
+      await InterviewSession.deleteMany({ jobId: req.params.jobId });
+    }
+
+    // Delete ScreeningResults for affected candidates so re-screening produces fresh results
+    if (affectedCandidateIds.size > 0) {
+      await ScreeningResult.deleteMany({
+        jobId: req.params.jobId,
+        candidateId: { $in: Array.from(affectedCandidateIds) },
+      });
+    }
+
+    // ── 5. Reset candidate statuses ──
+    // Un-reject candidates that were rejected at stages >= targetIdx
+    await Candidate.updateMany(
+      { jobId: req.params.jobId, rejectedAtStageIndex: { $gte: targetIdx } },
+      { $set: { status: "shortlisted" }, $unset: { rejectedAtStageIndex: 1, rejectedAtStageName: 1 } }
+    );
+    // Also un-shortlist candidates that were "shortlisted" at stages we're rolling back
+    // (treat them as screened so they can be re-evaluated cleanly)
+    if (affectedCandidateIds.size > 0) {
+      await Candidate.updateMany(
+        { jobId: req.params.jobId, _id: { $in: Array.from(affectedCandidateIds) }, status: "shortlisted" },
+        { $set: { status: "screened" } }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: `Pipeline rolled back to "${pipeline.stages[targetIdx].name}". ${poolForTarget.length} candidates restored to this stage.`,
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
