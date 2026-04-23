@@ -498,6 +498,23 @@ const SLIDES = [
   { img: "/l1.png", title: "AI Screens So You Don't Have To", desc: "Deep semantic analysis of skills, experience, and culture fit — explained in plain language." },
 ];
 
+const AUTH_FOCUS_STYLE = { borderColor: "#2b72f0" };
+const AUTH_BLUR_STYLE  = { borderColor: "#e5e7eb" };
+
+function AuthField({ type, k, ph, form, setForm }: {
+  type: string; k: "name" | "email" | "password"; ph: string;
+  form: { name: string; email: string; password: string };
+  setForm: React.Dispatch<React.SetStateAction<{ name: string; email: string; password: string }>>;
+}) {
+  return (
+    <input type={type} placeholder={ph} value={form[k]} required
+      onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+      onFocus={e => Object.assign(e.target.style, AUTH_FOCUS_STYLE)}
+      onBlur={e => Object.assign(e.target.style, AUTH_BLUR_STYLE)}
+      style={{ width: "100%", padding: "11px 14px", borderRadius: "10px", border: "1px solid #93c5fd", fontSize: "0.875rem", outline: "none", boxSizing: "border-box" as const, background: "#f9fafb", color: "#0f172a", transition: "border-color 0.2s" }} />
+  );
+}
+
 function AuthGate({ onAuth }: { onAuth: (u: AuthUser) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -522,15 +539,6 @@ function AuthGate({ onAuth }: { onAuth: (u: AuthUser) => void }) {
     finally { setLoading(false); }
   };
 
-  const focusStyle = { borderColor: "#2b72f0" };
-  const blurStyle  = { borderColor: "#e5e7eb" };
-  const Field = ({ type, k, ph }: { type: string; k: keyof typeof form; ph: string }) => (
-    <input type={type} placeholder={ph} value={form[k]} required
-      onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
-      onFocus={e => Object.assign(e.target.style, focusStyle)}
-      onBlur={e => Object.assign(e.target.style, blurStyle)}
-      style={{ width: "100%", padding: "11px 14px", borderRadius: "10px", border: "1px solid #93c5fd", fontSize: "0.875rem", outline: "none", boxSizing: "border-box" as const, background: "#f9fafb", color: "#0f172a", transition: "border-color 0.2s" }} />
-  );
 
   return (
     <div style={{ height: "100vh", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "#f1f5f9", padding: "0 16px" }}>
@@ -582,9 +590,9 @@ function AuthGate({ onAuth }: { onAuth: (u: AuthUser) => void }) {
 
           {/* Form */}
           <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-            {mode === "register" && <Field type="text" k="name" ph="Full name" />}
-            <Field type="email" k="email" ph="Email address" />
-            <Field type="password" k="password" ph={mode === "register" ? "Password (min 8 chars)" : "Password"} />
+            {mode === "register" && <AuthField type="text" k="name" ph="Full name" form={form} setForm={setForm} />}
+            <AuthField type="email" k="email" ph="Email address" form={form} setForm={setForm} />
+            <AuthField type="password" k="password" ph={mode === "register" ? "Password (min 8 chars)" : "Password"} form={form} setForm={setForm} />
 
             {err && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 12px", borderRadius: "8px", background: "#fef2f2", border: "1px solid #fecaca" }}>

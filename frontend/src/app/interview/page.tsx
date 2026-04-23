@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
-import { publicApiBaseUrl } from "@/lib/api";
 
-const API = publicApiBaseUrl;
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 /* ── Brand colors ── */
 const C = {
