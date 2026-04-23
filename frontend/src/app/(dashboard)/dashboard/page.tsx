@@ -1356,6 +1356,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [practicalPickIds, setPracticalPickIds] = useState<Set<string>>(new Set());
   const [assessmentAiHint, setAssessmentAiHint] = useState("");
   const [assessmentGenBusy, setAssessmentGenBusy] = useState(false);
+  const [videoModal, setVideoModal] = useState<{ url: string; name: string; transcript: any[] } | null>(null);
 
   /* Rollback state */
   const [rollbackConfirmIdx, setRollbackConfirmIdx] = useState<number | null>(null);
@@ -3361,9 +3362,21 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                                       {session.status === "in_progress" ? "In Progress" : session.status === "completed" ? "Completed" : session.status === "expired" ? "Expired" : "Pending"}
                                     </span>
                                     {session.hasRecording && (
-                                      <a href={`${publicApiBaseUrl}/pipeline/${selJob?._id}/stage/${screeningViewIdx}/interview/sessions/${session._id}/recording`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ padding: "3px 8px", borderRadius: "6px", background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: "0.65rem", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                      <button onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          const token = localStorage.getItem("umuranga_token");
+                                          const resp = await fetch(`${publicApiBaseUrl}/pipeline/${selJob?._id}/stage/${screeningViewIdx}/interview/sessions/${session._id}/recording`, {
+                                            headers: { Authorization: `Bearer ${token}` },
+                                          });
+                                          if (!resp.ok) throw new Error("Failed to load recording");
+                                          const blob = await resp.blob();
+                                          const url = URL.createObjectURL(blob);
+                                          setVideoModal({ url, name: cand?.name || "Candidate", transcript: session.transcript || [] });
+                                        } catch { alert("Could not load recording."); }
+                                      }} style={{ padding: "3px 8px", borderRadius: "6px", background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontSize: "0.65rem", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                                         <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polygon points="23 7 16 12 23 17 23 7"/><rect x={1} y={5} width={15} height={14} rx={2}/></svg> Watch
-                                      </a>
+                                      </button>
                                     )}
                                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}><polyline points="6 9 12 15 18 9"/></svg>
                                   </div>
@@ -3518,6 +3531,52 @@ function HireTab({ jobs }: { jobs: Job[] }) {
               >
                 {rollbackBusy ? "Rolling back…" : "Yes, Roll Back"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Video Recording Modal ── */}
+      {videoModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => { URL.revokeObjectURL(videoModal.url); setVideoModal(null); }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 900, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 12px 48px rgba(0,0,0,0.25)" }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#2b72f0" strokeWidth={2}><polygon points="23 7 16 12 23 17 23 7"/><rect x={1} y={5} width={15} height={14} rx={2}/></svg>
+                <span style={{ fontWeight: 700, fontSize: "0.92rem", color: "#0f172a" }}>{videoModal.name} — Interview Recording</span>
+              </div>
+              <button onClick={() => { URL.revokeObjectURL(videoModal.url); setVideoModal(null); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex" }}>
+                <X style={{ width: 18, height: 18, color: "#64748b" }} />
+              </button>
+            </div>
+            {/* Body */}
+            <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
+              {/* Video */}
+              <div style={{ flex: 2, background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <video src={videoModal.url} controls autoPlay style={{ width: "100%", maxHeight: "60vh", outline: "none" }} />
+              </div>
+              {/* Transcript */}
+              {videoModal.transcript.length > 0 && (
+                <div style={{ flex: 1, minWidth: 240, maxWidth: 320, borderLeft: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+                  <div style={{ padding: "10px 14px", borderBottom: "1px solid #f1f5f9" }}>
+                    <p style={{ margin: 0, fontSize: "0.65rem", fontWeight: 700, color: "#94a3b8", letterSpacing: "0.07em" }}>TRANSCRIPT</p>
+                  </div>
+                  <div style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {videoModal.transcript.map((turn: any, i: number) => (
+                      <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: turn.speaker === "ai" ? "#2b72f0" : "#22c55e" }}>
+                          {turn.speaker === "ai" ? "AI Interviewer" : "Candidate"}
+                        </span>
+                        <p style={{ margin: 0, fontSize: "0.72rem", color: "#334155", lineHeight: 1.55, background: turn.speaker === "ai" ? "#f0f9ff" : "#f0fdf4", padding: "6px 10px", borderRadius: 8, border: `1px solid ${turn.speaker === "ai" ? "#dbeafe" : "#dcfce7"}` }}>
+                          {turn.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
