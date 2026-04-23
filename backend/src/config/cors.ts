@@ -2,9 +2,6 @@ import type { CorsOptions } from "cors";
 
 const normalizeOrigin = (o: string) => o.trim().replace(/\/$/, "");
 
-/** Vercel preview URLs change per deploy; optional allow-list for *.vercel.app (HTTPS only). */
-const vercelAppPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
-
 export function corsOptionsFromEnv(): CorsOptions {
   const allowVercelApp =
     process.env.CORS_ALLOW_VERCEL_APP === "true" ||
@@ -26,9 +23,16 @@ export function corsOptionsFromEnv(): CorsOptions {
         callback(null, true);
         return;
       }
-      if (allowVercelApp && vercelAppPreview.test(n)) {
-        callback(null, true);
-        return;
+      if (allowVercelApp) {
+        try {
+          const host = new URL(origin).hostname;
+          if (host === "vercel.app" || host.endsWith(".vercel.app")) {
+            callback(null, true);
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
       }
       callback(null, false);
     },
