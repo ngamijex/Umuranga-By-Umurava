@@ -811,20 +811,7 @@ export default function InterviewPage() {
             </div>
           )}
 
-          {/* Speak again button */}
-          {status === "idle" && aiMsg && hasSpeech && (
-            <button
-              onClick={startListening}
-              style={{
-                marginTop: 14, padding: "9px 22px", borderRadius: 50,
-                background: C.primary50, border: `1px solid ${C.primary200}`,
-                color: C.primary, fontSize: "0.78rem", fontWeight: 700,
-                cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7,
-              }}
-            >
-              {Ic.mic(C.primary)} Tap to speak
-            </button>
-          )}
+          {/* Mic always on — no manual trigger needed */}
         </div>
 
       </div>
