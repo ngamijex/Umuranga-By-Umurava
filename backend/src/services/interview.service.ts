@@ -125,7 +125,7 @@ Return ONLY a JSON array of topic strings (no markdown fence):
 
 /**
  * Get the AI's next response in a natural, flowing conversation.
- * The AI is a warm, human-like interviewer — not a formal Q&A machine.
+ * The AI balances brief follow-ups with moving through role-relevant topics.
  */
 export async function getAIResponse(
   job: IJob,
@@ -141,23 +141,26 @@ export async function getAIResponse(
     .join("\n");
 
   const exchangeCount = transcript.filter(t => t.speaker === "candidate").length;
-  const shouldWrapUp = exchangeCount >= topics.length + 1;
+  const shouldWrapUp = exchangeCount >= topics.length + 2;
 
-  const candCtx = candidate ? `\nCANDIDATE PROFILE (use this to ask specific, informed follow-ups):\n${buildCandidateContext(candidate)}\n` : "";
+  const candCtx = candidate ? `\nCANDIDATE PROFILE:\n${buildCandidateContext(candidate)}\n` : "";
 
-  const prompt = `You are a warm, natural HR interviewer having a real human conversation with ${candidate?.name || "a candidate"} for the "${job.title}" role.
+  const prompt = `You are a warm, professional HR interviewer having a real conversation with ${candidate?.name || "a candidate"} for the "${job.title}" role (${job.department || "company"}).
 ${candCtx}
-IMPORTANT — behave like a real person, NOT a scripted chatbot:
-- You already know the candidate's background (see profile above). Use it! Reference specific experiences, projects, or companies they've worked at.
-- Ask follow-up questions that show you read their CV — e.g. "I noticed you worked on [X], how did that go?"
-- If they mention something vague, ask for clarification based on what you know about their background
-- React genuinely — be curious, interested, or surprised when appropriate
-- Never say "Great answer!" or hollow praise — be natural and real
-- Never list multiple questions at once
-- Speak in short, natural sentences — 2–4 sentences maximum
-- Don't announce topic changes — transition smoothly
+YOUR CONVERSATION STRATEGY — follow this pattern for EVERY turn:
+1. ACKNOWLEDGE (1 sentence max): Briefly react to what the candidate just said — show you listened. Be genuine, not hollow. No "Great answer!" praise.
+2. TRANSITION + NEW QUESTION: After acknowledging, smoothly move to a NEW topic from the uncovered list below. Ask ONE clear, specific question about the role, their skills, or a scenario relevant to "${job.title}".
 
-Topics to naturally weave into the conversation (you don't have to cover all of them, not in order):
+CRITICAL RULES:
+- You MUST ask a new question every turn — do NOT just follow up endlessly on the same thread
+- Cover as many different topics as possible across the interview — breadth matters
+- Mix question styles: some about their background, some technical/role-specific, some situational ("How would you handle…"), some about motivations and goals
+- If their profile mentions specific companies, projects, or skills, reference those when transitioning to a new topic — this shows you've read their CV
+- Never list multiple questions at once — ask exactly ONE question per turn
+- Speak in 2–3 sentences total (1 acknowledgment + 1–2 sentence question)
+- Don't announce topic changes — transition naturally
+
+TOPICS TO COVER (prioritize ones NOT yet discussed — you have ${topics.length} topics and ${exchangeCount} exchanges so far):
 ${topicList}
 
 Conversation so far:
@@ -166,14 +169,14 @@ ${historyText || "(you just introduced yourself)"}
 Candidate just said: "${candidateMessage}"
 
 ${shouldWrapUp
-  ? `You have had ${exchangeCount} exchanges and covered the main topics. Wrap up warmly — thank ${candidate?.name || "them"} by name, say a brief genuine word about the chat, and let them know the team will be in touch. Set isComplete to true.`
-  : `Continue the conversation naturally. React to what they said. If it connects to something in their profile (a project, a role, a skill), dig into that specifically.`
+  ? `You have had ${exchangeCount} exchanges and covered enough topics. Wrap up warmly — thank ${candidate?.name || "them"} by name, say a brief genuine word about the conversation, and let them know the team will be in touch. Set isComplete to true.`
+  : `Pick a topic from the list that has NOT been discussed yet and ask a clear, specific question about it. Remember: 1 sentence acknowledgment + 1 new question.`
 }
 
 Return ONLY valid JSON (no markdown fence):
 {
-  "message": "<your spoken response — natural, short, human>",
-  "isComplete": <true only if you are wrapping up the interview, false otherwise>
+  "message": "<your spoken response — 2-3 sentences: brief acknowledgment + new question>",
+  "isComplete": <true only if wrapping up, false otherwise>
 }`;
 
   const raw = await openaiChatText(prompt, { maxRetries: 2 });

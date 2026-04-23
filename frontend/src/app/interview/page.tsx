@@ -101,20 +101,63 @@ const Ic = {
   ),
 };
 
-/* ── Speech helpers ── */
+/* ── Speech helpers (with Chrome keepalive workaround) ── */
+let _speakKeepAlive: ReturnType<typeof setInterval> | null = null;
+let _speakTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function _clearSpeakTimers() {
+  if (_speakKeepAlive) { clearInterval(_speakKeepAlive); _speakKeepAlive = null; }
+  if (_speakTimeout) { clearTimeout(_speakTimeout); _speakTimeout = null; }
+}
+
 function speak(text: string, onEnd?: () => void) {
   if (typeof window === "undefined") return;
+  _clearSpeakTimers();
   window.speechSynthesis.cancel();
+
   const u = new SpeechSynthesisUtterance(text);
-  u.rate = 0.93; u.pitch = 1; u.volume = 1;
+  u.rate = 0.95; u.pitch = 1; u.volume = 1;
   const voices = window.speechSynthesis.getVoices();
   const preferred = voices.find(v => /en[-_](US|GB|AU)/i.test(v.lang) && /female|woman|samantha|karen|moira|serena|victoria/i.test(v.name))
     || voices.find(v => /en/i.test(v.lang));
   if (preferred) u.voice = preferred;
-  if (onEnd) u.onend = onEnd;
+
+  let finished = false;
+  const done = () => {
+    if (finished) return;
+    finished = true;
+    _clearSpeakTimers();
+    onEnd?.();
+  };
+
+  u.onend = done;
+  u.onerror = () => done();
+
+  // Chrome bug workaround: pause/resume every 10s to keep synthesis alive
+  _speakKeepAlive = setInterval(() => {
+    if (!window.speechSynthesis.speaking) { done(); return; }
+    window.speechSynthesis.pause();
+    window.speechSynthesis.resume();
+  }, 10_000);
+
+  // Timeout fallback: ~80ms per word + 4s buffer — if onend never fires, force-complete
+  const wordCount = text.split(/\s+/).length;
+  const estimatedMs = Math.max(5000, wordCount * 80 + 4000);
+  _speakTimeout = setTimeout(() => {
+    if (!finished) {
+      window.speechSynthesis.cancel();
+      done();
+    }
+  }, estimatedMs);
+
   window.speechSynthesis.speak(u);
 }
-function stopSpeaking() { if (typeof window !== "undefined") window.speechSynthesis.cancel(); }
+
+function stopSpeaking() {
+  if (typeof window === "undefined") return;
+  _clearSpeakTimers();
+  window.speechSynthesis.cancel();
+}
 
 /* ── Score ring ── */
 function ScoreRing({ value, label, color }: { value: number; label: string; color: string }) {
