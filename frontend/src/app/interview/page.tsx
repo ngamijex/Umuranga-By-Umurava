@@ -289,6 +289,18 @@ export default function InterviewPage() {
     let processedUpTo = 0;
 
     r.onresult = (e: any) => {
+      // IMPORTANT: Ignore all speech while AI is speaking or processing.
+      // The mic picks up the AI's voice from speakers — treating that as
+      // user speech would cause a feedback loop / conflict.
+      const cur = statusRef.current;
+      if (cur === "ai_speaking" || cur === "processing") {
+        // Still advance processedUpTo so we don't re-process stale results later
+        for (let i = processedUpTo; i < e.results.length; i++) {
+          if (e.results[i].isFinal) processedUpTo = i + 1;
+        }
+        return;
+      }
+
       let newFinal = "";
       let interim = "";
       for (let i = processedUpTo; i < e.results.length; i++) {
@@ -300,13 +312,6 @@ export default function InterviewPage() {
         }
       }
 
-      // User is speaking — if AI is talking, interrupt it
-      if ((newFinal || interim) && statusRef.current === "ai_speaking") {
-        stopSpeaking();
-        setStatus("listening");
-        statusRef.current = "listening";
-      }
-
       if (newFinal) {
         capturedRef.current += newFinal;
         setLiveCapture(capturedRef.current.trim());
@@ -315,7 +320,7 @@ export default function InterviewPage() {
       }
 
       // Show listening status when user is speaking
-      if ((newFinal || interim) && statusRef.current !== "processing") {
+      if (newFinal || interim) {
         setStatus("listening");
         statusRef.current = "listening";
       }
@@ -326,8 +331,7 @@ export default function InterviewPage() {
       // After user pauses for 2.5s, auto-submit their accumulated speech
       if (capturedRef.current.trim()) {
         silenceTimerRef.current = setTimeout(() => {
-          const cur = statusRef.current;
-          if (cur === "processing" || cur === "ai_speaking") return; // wait, don't submit yet
+          if (statusRef.current === "processing" || statusRef.current === "ai_speaking") return;
           const text = capturedRef.current.trim();
           if (!text) return;
           capturedRef.current = "";
@@ -375,6 +379,8 @@ export default function InterviewPage() {
       if (d.data.isComplete) {
         setStatus("ai_speaking");
         statusRef.current = "ai_speaking";
+        capturedRef.current = "";
+        setLiveCapture("");
         speak(msg, async () => {
           setStatus("idle");
           statusRef.current = "idle";
@@ -388,21 +394,12 @@ export default function InterviewPage() {
       } else {
         setStatus("ai_speaking");
         statusRef.current = "ai_speaking";
+        // Clear any captured text that was echo from AI voice
+        capturedRef.current = "";
+        setLiveCapture("");
         speak(msg, () => {
           setStatus("idle");
           statusRef.current = "idle";
-          // If user spoke during AI response, schedule submission
-          if (capturedRef.current.trim()) {
-            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-            silenceTimerRef.current = setTimeout(() => {
-              const text = capturedRef.current.trim();
-              if (text && sendRef.current) {
-                capturedRef.current = "";
-                setLiveCapture("");
-                sendRef.current(text);
-              }
-            }, 2500);
-          }
         });
       }
     } catch { setStatus("idle"); statusRef.current = "idle"; }
