@@ -268,24 +268,31 @@ export async function buildOpeningMessage(job: IJob, _firstTopic: string, candid
   const candCtx = candidate ? buildCandidateContext(candidate) : "";
   const firstName = candidate?.name ? candidate.name.split(" ")[0] : "";
 
-  const prompt = `You are an HR interviewer about to start a relaxed, natural video conversation with ${firstName || "a candidate"} for the "${job.title}" role at ${job.department || "the company"}.
-${candCtx ? `\nCandidate profile:\n${candCtx}\n` : ""}
-Write a short, natural, warm opening greeting — the very first thing you say to kick off the interview.
+  const prompt = `You are a friendly HR interviewer starting a relaxed video conversation with ${firstName || "a candidate"} for the "${job.title}" role at ${job.department || "the company"}.
+${candCtx ? `\nHere is what you know about the candidate:\n${candCtx}\n` : ""}
+Generate the very first thing you would naturally say to open this interview — as if you just connected on a video call.
 
-Rules:
-- Greet them by first name (${firstName || "use a friendly generic greeting"})
-- Sound like a real person, not a script — casual and warm
-- Briefly mention the role
-- Reference ONE specific detail from their background (a past company, a skill, a project) if available — to show you've actually looked at their profile
-- End with an open invitation for them to introduce themselves — but phrase it naturally, not as a formal question
-- 2–4 sentences MAXIMUM
-- Do NOT say "Great to meet you" or hollow openers
-- Return ONLY the spoken text, no quotes, no formatting`;
+Requirements:
+- Use their first name "${firstName || "there"}" naturally in the greeting
+- Be genuinely warm and unique — every interview opening should feel different, NOT like a template
+- Mention the role title naturally
+- If you have profile info, reference ONE specific thing from their background (e.g. "I saw you worked at [company]" or "Your experience with [skill] caught our eye") — this makes it feel personal
+- Invite them to start talking — e.g. ask them to share a bit about themselves, or what they've been up to, or what got them interested in the role
+- Keep it to 2–3 short, spoken sentences — this will be read aloud
+- Sound like a real human on a video call, not a script or a chatbot
+- Do NOT start with clichés like "Thank you for joining" or "Great to meet you"
+- Return ONLY the spoken text — no quotes, no formatting, no JSON`;
 
   try {
     const text = await openaiChatText(prompt, { maxRetries: 2 });
-    if (text && text.trim().length > 10) return text.trim();
-  } catch { /* fall through to fallback */ }
+    if (text && text.trim().length > 10) {
+      console.log("[interview] AI opening message generated successfully");
+      return text.trim();
+    }
+    console.warn("[interview] AI opening message was empty or too short, using fallback");
+  } catch (err: any) {
+    console.error("[interview] AI opening message failed:", err?.message || err);
+  }
 
   // Fallback if AI fails
   const name = firstName ? ` ${firstName}` : "";
