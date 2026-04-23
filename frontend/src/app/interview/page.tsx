@@ -133,16 +133,25 @@ function speak(text: string, onEnd?: () => void) {
   u.onend = done;
   u.onerror = () => done();
 
-  // Chrome bug workaround: pause/resume every 10s to keep synthesis alive
+  // Chrome bug workaround: pause/resume every 12s to keep synthesis alive
+  // Use a consecutive-not-speaking counter to avoid false positives
+  let notSpeakingCount = 0;
   _speakKeepAlive = setInterval(() => {
-    if (!window.speechSynthesis.speaking) { done(); return; }
+    if (!window.speechSynthesis.speaking) {
+      notSpeakingCount++;
+      // Only call done if not speaking for 2 consecutive checks (24s idle = truly done)
+      if (notSpeakingCount >= 2) { done(); return; }
+    } else {
+      notSpeakingCount = 0;
+    }
     window.speechSynthesis.pause();
     window.speechSynthesis.resume();
-  }, 10_000);
+  }, 12_000);
 
-  // Timeout fallback: ~100ms per word + 6s buffer — if onend never fires, force-complete
+  // Timeout fallback: ~500ms per word + 10s buffer
+  // At rate 0.95, speech is roughly 140 wpm ≈ 430ms/word — 500ms gives safe margin
   const wordCount = text.split(/\s+/).length;
-  const estimatedMs = Math.max(6000, wordCount * 100 + 6000);
+  const estimatedMs = Math.max(15_000, wordCount * 500 + 10_000);
   _speakTimeout = setTimeout(() => {
     if (!finished) {
       window.speechSynthesis.cancel();
@@ -394,12 +403,22 @@ export default function InterviewPage() {
       } else {
         setStatus("ai_speaking");
         statusRef.current = "ai_speaking";
-        // Clear any captured text that was echo from AI voice
         capturedRef.current = "";
         setLiveCapture("");
         speak(msg, () => {
-          setStatus("idle");
-          statusRef.current = "idle";
+          // Cooldown: keep ignoring mic for 2s after AI stops to let speaker echo die
+          capturedRef.current = "";
+          setLiveCapture("");
+          // Restart recognition to flush any buffered echo transcripts
+          if (recognitionRef.current && phaseRef.current === "live") {
+            try { recognitionRef.current.stop(); } catch {}
+          }
+          setTimeout(() => {
+            capturedRef.current = "";
+            setLiveCapture("");
+            setStatus("idle");
+            statusRef.current = "idle";
+          }, 2000);
         });
       }
     } catch { setStatus("idle"); statusRef.current = "idle"; }
@@ -427,8 +446,18 @@ export default function InterviewPage() {
       // Start continuous listening immediately — mic is always open
       startContinuousListening();
       speak(msg, () => {
-        setStatus("idle");
-        statusRef.current = "idle";
+        // Cooldown: keep ignoring mic for 2s after AI stops to let speaker echo die
+        capturedRef.current = "";
+        setLiveCapture("");
+        if (recognitionRef.current && phaseRef.current === "live") {
+          try { recognitionRef.current.stop(); } catch {}
+        }
+        setTimeout(() => {
+          capturedRef.current = "";
+          setLiveCapture("");
+          setStatus("idle");
+          statusRef.current = "idle";
+        }, 2000);
       });
     } catch { setErrorMsg("Failed to start interview."); setPhase("error"); }
   }, [token, startCamera, startContinuousListening]);
