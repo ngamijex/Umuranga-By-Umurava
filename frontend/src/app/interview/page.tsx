@@ -140,9 +140,9 @@ function speak(text: string, onEnd?: () => void) {
     window.speechSynthesis.resume();
   }, 10_000);
 
-  // Timeout fallback: ~80ms per word + 4s buffer — if onend never fires, force-complete
+  // Timeout fallback: ~100ms per word + 6s buffer — if onend never fires, force-complete
   const wordCount = text.split(/\s+/).length;
-  const estimatedMs = Math.max(5000, wordCount * 80 + 4000);
+  const estimatedMs = Math.max(6000, wordCount * 100 + 6000);
   _speakTimeout = setTimeout(() => {
     if (!finished) {
       window.speechSynthesis.cancel();
@@ -200,6 +200,12 @@ export default function InterviewPage() {
   const recognitionRef = useRef<any>(null);
   const capturedRef = useRef("");
   const sendRef = useRef<((text: string) => Promise<void>) | null>(null);
+  const statusRef = useRef(status);
+  const phaseRef = useRef(phase);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { statusRef.current = status; }, [status]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   /* init */
   useEffect(() => {
@@ -267,34 +273,88 @@ export default function InterviewPage() {
     try { await fetch(`${API}/public/interview/${tok}/recording`, { method: "POST", body: fd }); } catch { /* non-fatal */ }
   }, []);
 
-  /* speech recognition with auto-submit */
-  const startListening = useCallback(() => {
+  /* continuous speech recognition — mic is always open */
+  const startContinuousListening = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
     capturedRef.current = "";
     setLiveCapture("");
+
     const r = new SR();
-    r.lang = "en-US"; r.continuous = false; r.interimResults = true;
+    r.lang = "en-US";
+    r.continuous = true;
+    r.interimResults = true;
+
+    let processedUpTo = 0;
+
     r.onresult = (e: any) => {
-      let interim = "", final = "";
-      for (const res of e.results) {
-        if (res.isFinal) final += res[0].transcript + " ";
-        else interim += res[0].transcript;
+      let newFinal = "";
+      let interim = "";
+      for (let i = processedUpTo; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          newFinal += e.results[i][0].transcript + " ";
+          processedUpTo = i + 1;
+        } else {
+          interim += e.results[i][0].transcript;
+        }
       }
-      if (final) { capturedRef.current += final; setLiveCapture(capturedRef.current.trim()); }
-      else setLiveCapture((capturedRef.current + interim).trim());
+
+      // User is speaking — if AI is talking, interrupt it
+      if ((newFinal || interim) && statusRef.current === "ai_speaking") {
+        stopSpeaking();
+        setStatus("listening");
+        statusRef.current = "listening";
+      }
+
+      if (newFinal) {
+        capturedRef.current += newFinal;
+        setLiveCapture(capturedRef.current.trim());
+      } else if (interim) {
+        setLiveCapture((capturedRef.current + interim).trim());
+      }
+
+      // Show listening status when user is speaking
+      if ((newFinal || interim) && statusRef.current !== "processing") {
+        setStatus("listening");
+        statusRef.current = "listening";
+      }
+
+      // Reset silence timer
+      if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+
+      // After user pauses for 2.5s, auto-submit their accumulated speech
+      if (capturedRef.current.trim()) {
+        silenceTimerRef.current = setTimeout(() => {
+          const cur = statusRef.current;
+          if (cur === "processing" || cur === "ai_speaking") return; // wait, don't submit yet
+          const text = capturedRef.current.trim();
+          if (!text) return;
+          capturedRef.current = "";
+          setLiveCapture("");
+          if (sendRef.current) sendRef.current(text);
+        }, 2500);
+      }
     };
+
+    // Auto-restart if recognition stops (browser may stop on long silence)
     r.onend = () => {
-      setStatus("idle");
-      const text = capturedRef.current.trim();
-      capturedRef.current = "";
-      setLiveCapture("");
-      if (text && sendRef.current) sendRef.current(text);
+      processedUpTo = 0;
+      if (phaseRef.current === "live") {
+        setTimeout(() => { try { r.start(); } catch {} }, 300);
+      }
     };
-    r.onerror = (e: any) => { if (e.error !== "no-speech") setStatus("idle"); };
-    r.start();
+
+    r.onerror = (e: any) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") return;
+      processedUpTo = 0;
+      if (phaseRef.current === "live") {
+        setTimeout(() => { try { r.start(); } catch {} }, 500);
+      }
+    };
+
+    try { r.start(); } catch {}
     recognitionRef.current = r;
-    setStatus("listening");
   }, []);
 
   /* send candidate turn */
@@ -302,30 +362,51 @@ export default function InterviewPage() {
     if (!token || !text.trim()) return;
     stopSpeaking();
     setStatus("processing");
+    statusRef.current = "processing";
     try {
       const res = await fetch(`${API}/public/interview/${token}/turn`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text.trim() }),
       });
       const d = await res.json();
-      if (!d.success) { setStatus("idle"); return; }
+      if (!d.success) { setStatus("idle"); statusRef.current = "idle"; return; }
       const msg: string = d.data.message;
       setAiMsg(msg);
       if (d.data.isComplete) {
         setStatus("ai_speaking");
+        statusRef.current = "ai_speaking";
         speak(msg, async () => {
           setStatus("idle");
+          statusRef.current = "idle";
+          phaseRef.current = "done";
           if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+          recognitionRef.current?.stop();
           if (token) await uploadRecording(token);
           stopCamera();
           setPhase("done");
         });
       } else {
         setStatus("ai_speaking");
-        speak(msg, () => { setStatus("idle"); startListening(); });
+        statusRef.current = "ai_speaking";
+        speak(msg, () => {
+          setStatus("idle");
+          statusRef.current = "idle";
+          // If user spoke during AI response, schedule submission
+          if (capturedRef.current.trim()) {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              const text = capturedRef.current.trim();
+              if (text && sendRef.current) {
+                capturedRef.current = "";
+                setLiveCapture("");
+                sendRef.current(text);
+              }
+            }, 2500);
+          }
+        });
       }
-    } catch { setStatus("idle"); }
-  }, [token, stopCamera, uploadRecording, startListening]);
+    } catch { setStatus("idle"); statusRef.current = "idle"; }
+  }, [token, stopCamera, uploadRecording]);
 
   useEffect(() => { sendRef.current = doSendAnswer; }, [doSendAnswer]);
 
@@ -333,6 +414,7 @@ export default function InterviewPage() {
   const beginInterview = useCallback(async () => {
     if (!token) return;
     setPhase("starting");
+    phaseRef.current = "starting";
     const ok = await startCamera();
     if (!ok) { setErrorMsg("Camera/microphone access denied. Please allow access and try again."); setPhase("error"); return; }
     try {
@@ -342,16 +424,27 @@ export default function InterviewPage() {
       const msg: string = d.data.message;
       setAiMsg(msg);
       setPhase("live");
+      phaseRef.current = "live";
       setStatus("ai_speaking");
-      speak(msg, () => { setStatus("idle"); startListening(); });
+      statusRef.current = "ai_speaking";
+      // Start continuous listening immediately — mic is always open
+      startContinuousListening();
+      speak(msg, () => {
+        setStatus("idle");
+        statusRef.current = "idle";
+      });
     } catch { setErrorMsg("Failed to start interview."); setPhase("error"); }
-  }, [token, startCamera, startListening]);
+  }, [token, startCamera, startContinuousListening]);
 
   /* end interview manually */
   const endInterview = useCallback(async () => {
     stopSpeaking();
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    phaseRef.current = "done"; // prevent recognition auto-restart
     recognitionRef.current?.stop();
+    recognitionRef.current = null;
     setStatus("idle");
+    statusRef.current = "idle";
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
     if (token) await uploadRecording(token);
     stopCamera();
@@ -596,16 +689,15 @@ export default function InterviewPage() {
               background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)",
               paddingTop: 32,
             }}>
-              {/* Mic */}
-              <button
-                onClick={() => { if (status === "idle" && aiMsg) startListening(); }}
-                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
+              {/* Mic — always on indicator */}
+              <div
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
               >
                 {status === "listening" ? Ic.mic(C.green) : Ic.mic("rgba(255,255,255,0.9)")}
                 <span style={{ fontSize: "0.58rem", fontWeight: 700, color: status === "listening" ? C.green : "rgba(255,255,255,0.75)", letterSpacing: "0.04em" }}>
-                  {status === "listening" ? "Listening" : "Mic"}
+                  {status === "listening" ? "Listening…" : "Mic on"}
                 </span>
-              </button>
+              </div>
 
               {/* Captions */}
               <button
