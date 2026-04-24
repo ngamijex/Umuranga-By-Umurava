@@ -12,12 +12,30 @@ function getGemini(): GoogleGenerativeAI {
 
 function isRateLimitLike(error: unknown): boolean {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
-  return msg.includes("429") || msg.includes("rate") || msg.includes("quota") || msg.includes("resource has been exhausted");
+  return (
+    msg.includes("429") ||
+    msg.includes("rate") ||
+    msg.includes("quota") ||
+    msg.includes("resource has been exhausted") ||
+    msg.includes("503") ||
+    msg.includes("service unavailable") ||
+    msg.includes("high demand") ||
+    msg.includes("unavailable")
+  );
 }
 
 function isZeroQuotaForModel(error: unknown): boolean {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
   return msg.includes("quota exceeded") && msg.includes("limit: 0");
+}
+
+function parseRetryAfterMs(error: unknown): number | null {
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  const m = msg.match(/retry in\s+(\d+(?:\.\d+)?)s/);
+  if (!m) return null;
+  const secs = Number(m[1]);
+  if (!Number.isFinite(secs) || secs <= 0) return null;
+  return Math.ceil(secs * 1000);
 }
 
 /**
@@ -59,8 +77,11 @@ export async function geminiChatText(
       }
       if (!isRateLimitLike(e)) throw e;
       if (attempt >= maxRetries) break;
-      const waitMs = Math.min(3000 * Math.pow(2, attempt), 120_000);
-      console.warn(`[Gemini] Rate limited. Waiting ${Math.round(waitMs / 1000)}s before retry ${attempt + 1}/${maxRetries}…`);
+      const hinted = parseRetryAfterMs(e);
+      const base = hinted ?? Math.min(3000 * Math.pow(2, attempt), 120_000);
+      const jitter = Math.floor(Math.random() * 750);
+      const waitMs = Math.min(base + jitter, 180_000);
+      console.warn(`[Gemini] Temporary limit/unavailable. Waiting ${Math.round(waitMs / 1000)}s before retry ${attempt + 1}/${maxRetries}…`);
       await sleep(waitMs);
     }
   }
