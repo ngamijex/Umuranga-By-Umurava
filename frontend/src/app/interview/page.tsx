@@ -200,6 +200,9 @@ export default function InterviewPage() {
   const [captionsOn, setCaptionsOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   /* refs */
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -235,6 +238,21 @@ export default function InterviewPage() {
       })
       .catch(() => { setErrorMsg("Could not load interview. Check your connection."); setPhase("error"); });
   }, [token]);
+
+  /* one-time tour (per browser) */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (phase !== "lobby") return;
+    try {
+      const seen = window.localStorage.getItem("umuranga_interview_tour_v1");
+      if (!seen) {
+        setShowTour(true);
+        setTourStep(0);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [phase]);
 
   /* camera */
   const startCamera = useCallback(async () => {
@@ -462,6 +480,21 @@ export default function InterviewPage() {
     } catch { setErrorMsg("Failed to start interview."); setPhase("error"); }
   }, [token, startCamera, startContinuousListening]);
 
+  const startCountdownThenBegin = useCallback(() => {
+    setCountdown(10);
+  }, []);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      setCountdown(null);
+      beginInterview();
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => (c === null ? null : c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, beginInterview]);
+
   /* end interview manually */
   const endInterview = useCallback(async () => {
     stopSpeaking();
@@ -591,12 +624,158 @@ export default function InterviewPage() {
                 Voice recognition works best in Chrome or Edge. Please use one of those browsers.
               </div>
             )}
-            <button onClick={beginInterview} style={{ width: "100%", padding: "14px", borderRadius: 12, background: C.primary, color: C.white, border: "none", fontSize: "0.925rem", fontWeight: 700, cursor: "pointer" }}>
-              Begin Interview
-            </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <button
+                onClick={() => { setShowTour(true); setTourStep(0); }}
+                style={{ padding: "14px", borderRadius: 12, background: C.gray100, color: C.gray700, border: `1px solid ${C.gray200}`, fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}
+              >
+                Take a quick tour
+              </button>
+              <button
+                onClick={() => {
+                  // If tour is open, the button is behind overlay anyway.
+                  startCountdownThenBegin();
+                }}
+                style={{ padding: "14px", borderRadius: 12, background: C.primary, color: C.white, border: "none", fontSize: "0.925rem", fontWeight: 800, cursor: "pointer" }}
+              >
+                Begin (10s countdown)
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ── Tour overlay ── */}
+      {showTour && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(2,6,23,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+          <div style={{ width: "min(640px, 100%)", background: C.white, borderRadius: 18, border: `1px solid ${C.gray200}`, boxShadow: "0 16px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+            <div style={{ background: C.primary, color: C.white, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 800, opacity: 0.75, letterSpacing: "0.12em" }}>INTERFACE TOUR</p>
+                <p style={{ margin: "4px 0 0", fontSize: "1rem", fontWeight: 900 }}>Here’s how the interview works</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTour(false);
+                  try { window.localStorage.setItem("umuranga_interview_tour_v1", "1"); } catch {}
+                }}
+                style={{ background: "rgba(255,255,255,0.15)", color: C.white, border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 10px", fontSize: "0.78rem", fontWeight: 800, cursor: "pointer" }}
+              >
+                Skip
+              </button>
+            </div>
+
+            {(() => {
+              const steps = [
+                {
+                  title: "You don’t need to press “Record”.",
+                  body: "The AI speaks first. When it finishes, just start talking naturally. The system listens continuously and submits after a short pause.",
+                },
+                {
+                  title: "Captions help you follow along.",
+                  body: "Captions are on by default. You can toggle them any time during the interview if you prefer to listen only.",
+                },
+                {
+                  title: "Camera controls are always available.",
+                  body: "You can turn your camera on/off during the interview. Audio stays on to capture your answers.",
+                },
+                {
+                  title: "End anytime — safely.",
+                  body: "If you need to stop, use the End button. Your conversation so far will be uploaded and saved.",
+                },
+                {
+                  title: "We’ll do a 10‑second countdown.",
+                  body: "After the tour, you’ll get a short countdown to get comfortable before the interview starts.",
+                },
+              ];
+              const s = steps[Math.min(tourStep, steps.length - 1)];
+              const total = steps.length;
+              return (
+                <div style={{ padding: "20px 20px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+                    <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 800, color: C.gray500 }}>
+                      Step {Math.min(tourStep + 1, total)} of {total}
+                    </p>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {Array.from({ length: total }).map((_, i) => (
+                        <div key={i} style={{ width: i === tourStep ? 18 : 8, height: 8, borderRadius: 999, background: i <= tourStep ? C.primary : C.gray200, transition: "width 0.2s" }} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ border: `1px solid ${C.gray200}`, background: C.gray50, borderRadius: 14, padding: "18px 16px" }}>
+                    <h3 style={{ margin: "0 0 8px", fontSize: "1.05rem", fontWeight: 900, color: C.gray900 }}>{s.title}</h3>
+                    <p style={{ margin: 0, fontSize: "0.9rem", color: C.gray700, lineHeight: 1.7 }}>{s.body}</p>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                    <button
+                      onClick={() => setTourStep((n) => Math.max(0, n - 1))}
+                      disabled={tourStep === 0}
+                      style={{
+                        flex: 1,
+                        padding: "12px 12px",
+                        borderRadius: 12,
+                        background: tourStep === 0 ? C.gray100 : C.white,
+                        border: `1px solid ${C.gray200}`,
+                        color: C.gray700,
+                        fontSize: "0.9rem",
+                        fontWeight: 800,
+                        cursor: tourStep === 0 ? "not-allowed" : "pointer",
+                        opacity: tourStep === 0 ? 0.7 : 1,
+                      }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => {
+                        const last = tourStep >= total - 1;
+                        if (!last) { setTourStep((n) => Math.min(total - 1, n + 1)); return; }
+                        setShowTour(false);
+                        try { window.localStorage.setItem("umuranga_interview_tour_v1", "1"); } catch {}
+                        startCountdownThenBegin();
+                      }}
+                      style={{ flex: 1.4, padding: "12px 12px", borderRadius: 12, background: C.primary, border: "none", color: C.white, fontSize: "0.95rem", fontWeight: 900, cursor: "pointer" }}
+                    >
+                      {tourStep >= total - 1 ? "Start countdown" : "Next"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── Countdown overlay ── */}
+      {countdown !== null && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 650, background: "radial-gradient(1200px 600px at 50% 40%, rgba(43,114,240,0.22), rgba(15,23,42,0.72))", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ width: "min(520px, 100%)", background: "rgba(255,255,255,0.92)", borderRadius: 22, border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 24px 90px rgba(0,0,0,0.35)", padding: "26px 22px", textAlign: "center", backdropFilter: "blur(10px)" }}>
+            <p style={{ margin: "0 0 10px", fontSize: "0.72rem", fontWeight: 900, color: C.primary, letterSpacing: "0.12em" }}>GET READY</p>
+            <p style={{ margin: "0 0 18px", fontSize: "1.05rem", fontWeight: 900, color: C.gray900 }}>Interview starts in</p>
+            <div style={{ fontSize: "4.2rem", fontWeight: 950, lineHeight: 1, color: C.primary, letterSpacing: "-0.06em" }}>
+              {countdown}
+            </div>
+            <p style={{ margin: "12px 0 0", fontSize: "0.9rem", color: C.gray700, lineHeight: 1.6 }}>
+              Find a quiet spot, check your mic, and take a breath.
+            </p>
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button
+                onClick={() => setCountdown(null)}
+                style={{ flex: 1, padding: "12px", borderRadius: 12, background: C.white, border: `1px solid ${C.gray200}`, color: C.gray700, fontSize: "0.9rem", fontWeight: 900, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setCountdown(1)}
+                style={{ flex: 1, padding: "12px", borderRadius: 12, background: C.primary, border: "none", color: C.white, fontSize: "0.9rem", fontWeight: 950, cursor: "pointer" }}
+              >
+                Start now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
