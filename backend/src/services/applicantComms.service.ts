@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { geminiChatText } from "../config/gemini";
+import { jsonrepair } from "jsonrepair";
 import type { IApplicantComms, IPipelineStage } from "../models/Pipeline.model";
 import type { IJob } from "../models/Job.model";
 import type { ICandidate } from "../models/Candidate.model";
@@ -120,12 +121,24 @@ Return ONLY valid JSON (no markdown):
   ]
 }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000, batch: true, jsonMode: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000, jsonMode: true });
+
+  // Extract outermost JSON object, then parse with jsonrepair as safety net
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+  const jsonStr = firstBrace !== -1 && lastBrace > firstBrace
+    ? raw.slice(firstBrace, lastBrace + 1)
+    : raw;
+
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(jsonStr);
   } catch {
-    throw new Error("AI returned invalid JSON for email drafts. Try again.");
+    try {
+      parsed = JSON.parse(jsonrepair(jsonStr));
+    } catch {
+      throw new Error("AI returned invalid JSON for email drafts. Try again.");
+    }
   }
 
   const list = parsed.messages || [];
@@ -218,12 +231,17 @@ Return ONLY valid JSON:
 
 kind always "advance". Body 130–220 words.`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, batch: true, jsonMode: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, jsonMode: true });
+
+  const fb = raw.indexOf("{"); const lb = raw.lastIndexOf("}");
+  const jStr = fb !== -1 && lb > fb ? raw.slice(fb, lb + 1) : raw;
+
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(jStr);
   } catch {
-    throw new Error("AI returned invalid JSON for practical invitation drafts.");
+    try { parsed = JSON.parse(jsonrepair(jStr)); }
+    catch { throw new Error("AI returned invalid JSON for practical invitation drafts."); }
   }
 
   const byId = new Map(candidates.map(c => [String(c._id), c]));
