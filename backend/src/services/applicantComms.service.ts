@@ -120,7 +120,7 @@ Return ONLY valid JSON (no markdown):
   ]
 }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000, batch: true });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
     parsed = JSON.parse(stripJsonFence(raw));
@@ -218,7 +218,7 @@ Return ONLY valid JSON:
 
 kind always "advance". Body 130–220 words.`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, batch: true });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
     parsed = JSON.parse(stripJsonFence(raw));

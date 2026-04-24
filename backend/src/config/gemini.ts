@@ -43,8 +43,13 @@ function parseRetryAfterMs(error: unknown): number | null {
   return Math.ceil(secs * 1000);
 }
 
-function getModelCandidates(): string[] {
-  const raw = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+/**
+ * Build model candidate list from an env var name (primary) + fallbacks.
+ * Batch/pipeline ops use GEMINI_BATCH_MODEL (default: gemini-2.0-flash) which is
+ * 5–10× faster than the thinking-enabled gemini-2.5-flash used for quality tasks.
+ */
+function getModelCandidates(primaryEnvVar = "GEMINI_MODEL"): string[] {
+  const raw = process.env[primaryEnvVar] || process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const primary = raw.startsWith("models/") ? raw : `models/${raw}`;
   const fallbacksRaw = process.env.GEMINI_FALLBACK_MODELS;
   const fallbacks = fallbacksRaw
@@ -54,10 +59,9 @@ function getModelCandidates(): string[] {
         .filter(Boolean)
         .map((m) => (m.startsWith("models/") ? m : `models/${m}`))
     : [
-        // More resilient / lower-demand options
-        "models/gemini-2.0-flash-lite-001",
-        "models/gemini-2.0-flash-001",
-        "models/gemini-2.5-pro",
+        "models/gemini-2.0-flash",
+        "models/gemini-2.0-flash-lite",
+        "models/gemini-2.5-flash",
       ];
 
   return [primary, ...fallbacks.filter((m) => m !== primary)];
@@ -65,14 +69,16 @@ function getModelCandidates(): string[] {
 
 /**
  * Gemini text generation with retry/backoff for transient limits.
- * Default model: gemini-2.5-flash (override with GEMINI_MODEL).
+ * Default model: GEMINI_MODEL (or GEMINI_BATCH_MODEL when batch:true).
  */
 export async function geminiChatText(
   prompt: string,
-  opts?: { maxRetries?: number; maxOutputTokens?: number; temperature?: number }
+  opts?: { maxRetries?: number; maxOutputTokens?: number; temperature?: number; batch?: boolean }
 ): Promise<string> {
   const maxRetries = opts?.maxRetries ?? 5;
-  const modelCandidates = getModelCandidates();
+  // batch:true → use GEMINI_BATCH_MODEL (fast, non-thinking) for bulk pipeline ops
+  const primaryEnv = opts?.batch ? "GEMINI_BATCH_MODEL" : "GEMINI_MODEL";
+  const modelCandidates = getModelCandidates(primaryEnv);
   let modelName = modelCandidates[0];
   const genAI = getGemini();
   let lastError: unknown;

@@ -199,7 +199,8 @@ export const screenCandidate = async (
 
   try {
     // Screening JSON is large (5+ comparison rows + HR paragraphs) — needs enough tokens to complete.
-    const text = await geminiChatText(prompt, { maxOutputTokens: 6000 });
+    // batch:true → uses GEMINI_BATCH_MODEL (gemini-2.0-flash by default, 5-10× faster than 2.5-flash)
+    const text = await geminiChatText(prompt, { maxOutputTokens: 6000, batch: true });
 
     // Find the outermost JSON object in the response.
     // Use lastIndexOf('}') so we get the full object even when Gemini wraps it in prose.
