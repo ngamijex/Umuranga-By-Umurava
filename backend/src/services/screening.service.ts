@@ -3,6 +3,7 @@ import { ICandidate, IWorkExperience } from "../models/Candidate.model";
 import type { IHrInputsAssessment, IJobRequirementComparisonRow } from "../models/ScreeningResult.model";
 import { geminiChatText } from "../config/gemini";
 import { buildHrContextStringForJob } from "./pipelineHrContext.service";
+import { jsonrepair } from "jsonrepair";
 
 export interface ScreeningOutput {
   overallScore: number;
@@ -83,56 +84,100 @@ function normalizeScreeningOutput(raw: Record<string, unknown>): ScreeningOutput
   };
 }
 
-// Resume excerpt sent to Gemini — 4000 chars is enough context without bloating the prompt
-const RESUME_PROMPT_CHARS = 4000;
+// Keep prompt compact — fewer chars → smaller output → faster Gemini response & fewer JSON errors
+const RESUME_PROMPT_CHARS = 5000;
 
 const buildPrompt = (job: IJob, candidate: ICandidate, hrContext: string, _stageType?: string): string => {
   const totalYears = calcTotalYears(candidate.experience || []);
+  const skillsSummary = (candidate.skills || []).map(s => `${s.name} (${s.level}, ${s.yearsOfExperience}yr)`).join(", ") || "None listed";
+  const expSummary = (candidate.experience || []).map(e => `${e.role} at ${e.company} (${e.startDate}–${e.isCurrent ? "Present" : e.endDate}): ${e.description || ""} [${(e.technologies || []).join(", ")}]`).join(" | ") || "No experience listed";
+  const eduSummary = (candidate.education || []).map(e => `${e.degree} in ${e.fieldOfStudy} — ${e.institution} (${e.startYear}–${e.endYear})`).join(" | ") || "No education listed";
+  const projSummary = (candidate.projects || []).map(p => `${p.name}: ${p.description} [${(p.technologies || []).join(", ")}]`).join(" | ") || "No projects listed";
+  const certSummary = (candidate.certifications || []).map(c => `${c.name} by ${c.issuer}`).join(", ") || "None";
+  const langSummary = (candidate.languages || []).map(l => `${l.name} (${l.proficiency})`).join(", ") || "Not specified";
+  const resumeSlice = candidate.resumeText
+    ? candidate.resumeText.slice(0, RESUME_PROMPT_CHARS)
+    : "";
+  const bioLine = candidate.bio?.trim() ? `- Professional bio: ${candidate.bio}` : "";
 
-  // Compact field summaries — no redundant labels, use semicolons to save tokens
-  const skillsSummary = (candidate.skills || [])
-    .slice(0, 12)
-    .map(s => `${s.name}(${s.level},${s.yearsOfExperience}yr)`).join(", ") || "None";
-  const expSummary = (candidate.experience || [])
-    .slice(0, 4)
-    .map(e => `${e.role}@${e.company}(${e.startDate}-${e.isCurrent ? "now" : e.endDate})${e.description ? ": " + e.description.slice(0, 120) : ""}`)
-    .join(" | ") || "None";
-  const eduSummary = (candidate.education || [])
-    .slice(0, 3)
-    .map(e => `${e.degree} ${e.fieldOfStudy}—${e.institution}(${e.startYear}-${e.endYear})`).join("; ") || "None";
-  const projSummary = (candidate.projects || [])
-    .slice(0, 3)
-    .map(p => `${p.name}: ${p.description.slice(0, 80)}[${(p.technologies || []).join(",")}]`).join("; ") || "None";
-  const resumeSlice = candidate.resumeText ? candidate.resumeText.slice(0, RESUME_PROMPT_CHARS) : "";
-  const hrTrimmed = hrContext.slice(0, 1500); // cap HR context to prevent prompt bloat
+  return `
+You are an expert AI talent screener. You must evaluate the **whole person** using the job, HR context, structured profile fields, **and** the resume/CV narrative below — not keyword-matching alone.
 
-  return `You are an expert AI talent screener. Return ONLY a valid JSON object.
+Return ONLY a valid JSON object (no markdown fences, no text outside JSON).
 
-JOB: ${job.title} | ${job.department}
-Required skills: ${job.requiredSkills.join(", ")}
-Preferred skills: ${(job.preferredSkills || []).join(", ") || "none"}
-Experience: ${job.experienceYears}yr min | Education: ${job.educationLevel}
-Weights: skills=${job.weights.skills}% experience=${job.weights.experience}% education=${job.weights.education}% culture=${job.weights.culture}%
-Description (excerpt): ${String(job.description || "").slice(0, 800)}
+## Job Requirements
+- Title: ${job.title}
+- Department: ${job.department}
+- Required Skills: ${job.requiredSkills.join(", ")}
+- Preferred Skills: ${job.preferredSkills.join(", ")}
+- Minimum Experience: ${job.experienceYears} years
+- Education Level Required: ${job.educationLevel}
+- Job Description: ${job.description}
 
-HR CONTEXT: ${hrTrimmed || "None configured."}
+## HR Guidelines & Pipeline Context (you MUST factor these into scores and written analysis)
+${hrContext}
 
-CANDIDATE: ${candidate.firstName} ${candidate.lastName} | ~${totalYears}yr exp
-${candidate.bio?.trim() ? `Bio: ${candidate.bio.slice(0, 200)}` : ""}
-Skills: ${skillsSummary}
-Experience: ${expSummary}
-Education: ${eduSummary}
-Projects: ${projSummary}
-${resumeSlice ? `CV text (read carefully, primary source):\n${resumeSlice}` : "No CV text stored — use structured fields only."}
+## Score Weights (use as priorities when judging overall fit)
+- Skills Match: ${job.weights.skills}%
+- Experience Depth: ${job.weights.experience}%
+- Education Fit: ${job.weights.education}%
+- Culture/Projects/Other: ${job.weights.culture}%
 
-OUTPUT RULES:
-- jobRequirementComparisons: exactly 4 rows (most critical job requirements only)
-- hrInputsAssessment: 1 sentence per sub-field; "Not configured." if HR fields were blank
-- aiExplanation: 2 sentences MAX
-- Scores must reflect actual evidence; do not keyword-match titles
+## Candidate Profile (structured)
+- Name: ${candidate.firstName} ${candidate.lastName}
+- Headline: ${candidate.headline}
+- Location: ${candidate.location}
+- Total Experience (approx.): ~${totalYears} years
+${bioLine}
+- Skills: ${skillsSummary}
+- Work Experience: ${expSummary}
+- Education: ${eduSummary}
+- Projects: ${projSummary}
+- Certifications: ${certSummary}
+- Languages: ${langSummary}
+- Availability: ${candidate.availability?.status || "Unknown"} · ${candidate.availability?.type || "Unknown"}
 
-Return exactly this JSON shape:
-{"overallScore":<0-100>,"dimensionScores":{"skills":<0-100>,"experience":<0-100>,"education":<0-100>,"culture":<0-100>},"matchedSkills":["..."],"missingSkills":["..."],"strengths":["..."],"gaps":["..."],"recommendation":"strong_yes|yes|maybe|no","aiExplanation":"<2 sentences>","jobRequirementComparisons":[{"aspect":"<label>","whatJobNeeds":"<need>","whatCandidateOffers":"<evidence>","fitLevel":"strong|partial|weak|missing","detail":"<1 sentence>"}],"hrInputsAssessment":{"howPreferencesApply":"<1 sentence>","howCriteriaApply":"<1 sentence>","howNotesApply":"<1 sentence>","overallAlignment":"<1 sentence>"}}
+## Resume / CV text (primary source for holistic judgment — read carefully)
+${resumeSlice ? `Use this text together with the structured fields above. Up to ${RESUME_PROMPT_CHARS} characters:\n${resumeSlice}` : "No raw resume text was stored for this candidate — rely on structured fields only and state this limitation in aiExplanation if it matters."}
+
+## Holistic judgment (required mindset)
+- Form a **general, balanced view** of the applicant: career trajectory, consistency, depth vs breadth, relevance of past roles, evidence of outcomes/impact where visible, and professionalism implied by the CV.
+- **Do not** judge fit from job-title keyword overlap alone. Weigh transferable experience, adjacent skills, and narrative from the CV against what the role actually needs.
+- If the resume is thin or missing detail, reflect that honestly in scores and gaps — do not invent experience.
+- When HR sets a **target shortlist size** in the pipeline context, your **overallScore** and **recommendation** should help rank this candidate fairly against others (strong evidence → higher scores; clear mismatches → lower).
+
+## Instructions for your analysis
+1. **jobRequirementComparisons**: Produce **3–5 rows** (top most critical job needs only). Each row compares ONE concrete job need to specific evidence from the candidate. Use fitLevel: strong | partial | weak | missing.
+2. **hrInputsAssessment**: 1–2 sentences per sub-field. If HR fields were empty, say "Not configured."
+3. **dimensionScores** and **overallScore** must reflect evidence in your comparisons and holistic CV read.
+4. **aiExplanation**: 2–3 sentences max: overall judgment, key tradeoff, and recommendation.
+
+## Required JSON shape (exact keys)
+{
+  "overallScore": <number 0-100>,
+  "dimensionScores": { "skills": <0-100>, "experience": <0-100>, "education": <0-100>, "culture": <0-100> },
+  "matchedSkills": ["..."],
+  "missingSkills": ["..."],
+  "strengths": ["..."],
+  "gaps": ["..."],
+  "recommendation": "strong_yes|yes|maybe|no",
+  "aiExplanation": "<string>",
+  "jobRequirementComparisons": [
+    {
+      "aspect": "<short label, e.g. Required: TypeScript>",
+      "whatJobNeeds": "<quote or paraphrase from job>",
+      "whatCandidateOffers": "<specific evidence from candidate>",
+      "fitLevel": "strong|partial|weak|missing",
+      "detail": "<one or two sentences explaining the match gap>"
+    }
+  ],
+  "hrInputsAssessment": {
+    "howPreferencesApply": "<detailed paragraph>",
+    "howCriteriaApply": "<detailed paragraph>",
+    "howNotesApply": "<detailed paragraph>",
+    "overallAlignment": "<detailed paragraph on HR + job fit together>"
+  }
+}
 `;
 };
 
@@ -154,17 +199,39 @@ export const screenCandidate = async (
 
   const prompt = buildPrompt(job, candidate, combinedHr, stageType);
 
-  try {
-    // jsonMode:true → responseMimeType:"application/json" forces Gemini to always produce valid,
-    // complete JSON — eliminates all "Expected ',' or '}'" parse errors.
-    // batch:true → uses GEMINI_BATCH_MODEL (gemini-2.0-flash, 5–10× faster than 2.5-flash).
-    // 3000 tokens is enough now that the prompt is trimmed to 3–5 comparison rows.
-    const text = await geminiChatText(prompt, { maxOutputTokens: 3000, batch: true, jsonMode: true });
+  // jsonMode forces Gemini to return valid JSON at the API level (responseMimeType).
+  // This eliminates unescaped-quote, unquoted-key, and trailing-comma errors.
+  // jsonrepair is kept as a last-resort safety net; retry once on any parse failure.
+  const MAX_PARSE_ATTEMPTS = 2;
+  let lastError: unknown;
 
-    const parsed = JSON.parse(text) as Record<string, unknown>;
-    return normalizeScreeningOutput(parsed);
-  } catch (error: any) {
-    console.error("[screenCandidate] Gemini error:", error?.message || String(error));
-    throw new Error(`Gemini API error: ${error?.message || String(error)}`);
+  for (let attempt = 0; attempt < MAX_PARSE_ATTEMPTS; attempt++) {
+    try {
+      const text = await geminiChatText(prompt, { jsonMode: true });
+
+      // jsonMode guarantees the response is already JSON, but extract the object
+      // in case Gemini still wraps it in a code fence on some models.
+      const firstBrace = text.indexOf("{");
+      const lastBrace = text.lastIndexOf("}");
+      const jsonStr = firstBrace !== -1 && lastBrace > firstBrace
+        ? text.slice(firstBrace, lastBrace + 1)
+        : text;
+
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+      } catch {
+        // jsonrepair as safety net (handles any remaining edge cases)
+        parsed = JSON.parse(jsonrepair(jsonStr)) as Record<string, unknown>;
+      }
+
+      return normalizeScreeningOutput(parsed);
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[screenCandidate] Attempt ${attempt + 1} failed: ${err?.message}. ${attempt + 1 < MAX_PARSE_ATTEMPTS ? "Retrying…" : "Giving up."}`);
+    }
   }
+
+  console.error("[screenCandidate] Gemini error:", (lastError as any)?.message || String(lastError));
+  throw new Error(`Gemini API error: ${(lastError as any)?.message || String(lastError)}`);
 };
