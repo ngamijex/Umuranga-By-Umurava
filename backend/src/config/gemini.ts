@@ -29,6 +29,11 @@ function isZeroQuotaForModel(error: unknown): boolean {
   return msg.includes("quota exceeded") && msg.includes("limit: 0");
 }
 
+function isServiceUnavailable(error: unknown): boolean {
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return msg.includes("503") || msg.includes("service unavailable") || msg.includes("high demand");
+}
+
 function parseRetryAfterMs(error: unknown): number | null {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
   const m = msg.match(/retry in\s+(\d+(?:\.\d+)?)s/);
@@ -36,6 +41,26 @@ function parseRetryAfterMs(error: unknown): number | null {
   const secs = Number(m[1]);
   if (!Number.isFinite(secs) || secs <= 0) return null;
   return Math.ceil(secs * 1000);
+}
+
+function getModelCandidates(): string[] {
+  const raw = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const primary = raw.startsWith("models/") ? raw : `models/${raw}`;
+  const fallbacksRaw = process.env.GEMINI_FALLBACK_MODELS;
+  const fallbacks = fallbacksRaw
+    ? fallbacksRaw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((m) => (m.startsWith("models/") ? m : `models/${m}`))
+    : [
+        // More resilient / lower-demand options
+        "models/gemini-2.0-flash-lite-001",
+        "models/gemini-2.0-flash-001",
+        "models/gemini-2.5-pro",
+      ];
+
+  return [primary, ...fallbacks.filter((m) => m !== primary)];
 }
 
 /**
@@ -47,11 +72,14 @@ export async function geminiChatText(
   opts?: { maxRetries?: number }
 ): Promise<string> {
   const maxRetries = opts?.maxRetries ?? 5;
-  const rawModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  let modelName = rawModel.startsWith("models/") ? rawModel : `models/${rawModel}`;
+  const modelCandidates = getModelCandidates();
+  let modelName = modelCandidates[0];
   const genAI = getGemini();
   let lastError: unknown;
   let didFallback = false;
+  let candidateIdx = 0;
+  const perModelServiceUnavailableAttempts = 2;
+  let serviceUnavailableAttemptsOnThisModel = 0;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -75,6 +103,22 @@ export async function geminiChatText(
         didFallback = true;
         continue;
       }
+
+      // If the model is under high demand (503), try switching models after a couple of attempts.
+      if (isServiceUnavailable(e)) {
+        serviceUnavailableAttemptsOnThisModel++;
+        if (serviceUnavailableAttemptsOnThisModel >= perModelServiceUnavailableAttempts) {
+          const next = modelCandidates.slice(candidateIdx + 1).find(Boolean);
+          if (next) {
+            candidateIdx++;
+            modelName = next;
+            serviceUnavailableAttemptsOnThisModel = 0;
+            console.warn(`[Gemini] ${modelCandidates[candidateIdx - 1]} is under high demand. Switching to ${modelName}…`);
+            continue;
+          }
+        }
+      }
+
       if (!isRateLimitLike(e)) throw e;
       if (attempt >= maxRetries) break;
       const hinted = parseRetryAfterMs(e);

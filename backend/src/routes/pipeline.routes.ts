@@ -829,7 +829,14 @@ router.post("/:jobId/stage/:idx/practical/grade-one/:submissionId", async (req: 
       .sort({ compareRank: 1, score: -1 }).lean();
     res.json({ success: true, data: { graded: 1, submissions: subs } });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    const msg = String(err?.message || err);
+    const isGeminiHighDemand = /high demand|service unavailable|503/i.test(msg);
+    res.status(isGeminiHighDemand ? 503 : 500).json({
+      success: false,
+      error: isGeminiHighDemand
+        ? "AI grading is temporarily busy (Gemini high demand). Please try again in a minute."
+        : msg,
+    });
   }
 });
 
