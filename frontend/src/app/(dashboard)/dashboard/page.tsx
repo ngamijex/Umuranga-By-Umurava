@@ -1907,7 +1907,10 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     } catch (e: any) { setZipErr(e.message || "Upload failed"); } finally { setZipUploading(false); }
   };
 
-  const getCand = (r: ScreeningResult): Candidate | null => typeof r.candidateId === "object" ? r.candidateId as Candidate : candidates.find(c => c._id === r.candidateId) || null;
+  const getCand = (r: ScreeningResult): Candidate | null => {
+    if (!r.candidateId) return null;
+    return typeof r.candidateId === "object" ? r.candidateId as Candidate : candidates.find(c => c._id === r.candidateId) || null;
+  };
   const availColor = (s?: string) => s === "Available" ? { bg: "#dcfce7", color: "#16a34a" } : s === "Open to Opportunities" ? { bg: "#fef9c3", color: "#b45309" } : { bg: "#fee2e2", color: "#dc2626" };
 
   /** Per-step pipeline status: first step vs later steps, who advanced vs “not selected” at a given step. */
@@ -2134,7 +2137,10 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       header: "Actions",
       enableColumnFilter: false,
       cell: ({ row: { original: c } }) => {
-        const r = results.find(x => (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id);
+        const r = results.find(x => {
+          if (!x.candidateId) return false;
+          return (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id;
+        });
         return (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
             <button
@@ -2539,8 +2545,11 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                         <tbody>
                           {table.getRowModel().rows.flatMap(row => {
                             const c = row.original;
-                            const r = results.find(x => (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id);
-                            const rows = [
+        const r = results.find(x => {
+                              if (!x.candidateId) return false;
+                              return (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id;
+                            });
+            const rows = [
                               <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9", background: editCand?._id === c._id ? "#fffbeb" : "transparent" }}>
                                 {row.getVisibleCells().map(cell => (
                                   <td key={cell.id} style={{ padding: "10px 14px", fontSize: "0.82rem", color: "#374151", verticalAlign: "middle" }}>
