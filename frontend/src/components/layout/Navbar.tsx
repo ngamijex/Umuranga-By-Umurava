@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 /* ── Nav tabs — 3 only ─────────────────────────────────── */
 const navTabs = [
   { label: "About",    href: "#about",      desc: "Overview & Purpose",    primary: false },
-  { label: "Hire",     href: "/dashboard",  desc: "Hiring Playground",     primary: true  },
+  { label: "Hire",     href: "/login",      desc: "Hiring Playground",     primary: true  },
   { label: "Insights", href: "#insights",   desc: "Analytics & Reports",   primary: false },
 ];
 
