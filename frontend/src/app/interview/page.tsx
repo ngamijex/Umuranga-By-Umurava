@@ -264,7 +264,6 @@ export default function InterviewPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [tourSpot, setTourSpot] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [tourTargetMissing, setTourTargetMissing] = useState(false);
-  const [speechLang, setSpeechLang] = useState<string>("en-US");
   const [mediaHint, setMediaHint] = useState<string>("");
 
   /* refs */
@@ -376,7 +375,7 @@ export default function InterviewPage() {
     setLiveCapture("");
 
     const r = new SR();
-    r.lang = speechLang || "en-US";
+    r.lang = "en-US";
     r.continuous = true;
     r.interimResults = true;
 
@@ -453,7 +452,7 @@ export default function InterviewPage() {
 
     try { r.start(); } catch {}
     recognitionRef.current = r;
-  }, [speechLang]);
+  }, []);
 
   /* send candidate turn */
   const doSendAnswer = useCallback(async (text: string) => {
@@ -744,32 +743,14 @@ export default function InterviewPage() {
                 <li>You can end the interview at any time using the controls</li>
               </ul>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-              <div style={{ background: C.gray50, borderRadius: 10, padding: "11px 13px", border: `1px solid ${C.gray200}` }}>
-                <p style={{ margin: "0 0 6px", fontSize: "0.6rem", fontWeight: 800, color: C.gray400, textTransform: "uppercase", letterSpacing: "0.07em" }}>Speech language</p>
-                <select
-                  value={speechLang}
-                  onChange={(e) => setSpeechLang(e.target.value)}
-                  style={{ width: "100%", borderRadius: 10, padding: "10px 10px", border: `1px solid ${C.gray200}`, background: C.white, fontSize: "0.86rem", fontWeight: 700, color: C.gray900 }}
-                >
-                  <option value="en-US">English (US)</option>
-                  <option value="en-GB">English (UK)</option>
-                  <option value="fr-FR">French</option>
-                  <option value="sw-KE">Swahili</option>
-                </select>
-                <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: C.gray600, lineHeight: 1.5 }}>
-                  Tip: accuracy is best when this matches what you speak.
-                </p>
-              </div>
-              <div style={{ background: C.gray50, borderRadius: 10, padding: "11px 13px", border: `1px solid ${C.gray200}` }}>
-                <p style={{ margin: "0 0 6px", fontSize: "0.6rem", fontWeight: 800, color: C.gray400, textTransform: "uppercase", letterSpacing: "0.07em" }}>Audio quality</p>
-                <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: C.gray900, lineHeight: 1.55 }}>
-                  Use headphones if possible. It prevents the mic from picking up the AI voice.
-                </p>
-                <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: C.gray600, lineHeight: 1.5 }}>
-                  We also enable echo cancellation automatically.
-                </p>
-              </div>
+            <div style={{ background: C.gray50, borderRadius: 10, padding: "11px 13px", border: `1px solid ${C.gray200}`, marginBottom: 18 }}>
+              <p style={{ margin: "0 0 6px", fontSize: "0.6rem", fontWeight: 800, color: C.gray400, textTransform: "uppercase", letterSpacing: "0.07em" }}>Audio quality</p>
+              <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: C.gray900, lineHeight: 1.55 }}>
+                Use headphones if possible. It prevents the mic from picking up the AI voice.
+              </p>
+              <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: C.gray600, lineHeight: 1.5 }}>
+                Speech recognition is set to English and we enable echo cancellation automatically.
+              </p>
             </div>
             {!hasSpeech && (
               <div style={{ background: "#FEF9C3", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: "0.78rem", color: "#92400e" }}>
