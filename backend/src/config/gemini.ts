@@ -24,7 +24,8 @@ export async function geminiChatText(
   opts?: { maxRetries?: number }
 ): Promise<string> {
   const maxRetries = opts?.maxRetries ?? 5;
-  const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const rawModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const modelName = rawModel.startsWith("models/") ? rawModel : `models/${rawModel}`;
   const genAI = getGemini();
   let lastError: unknown;
 
