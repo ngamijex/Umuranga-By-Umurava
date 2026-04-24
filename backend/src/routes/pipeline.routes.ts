@@ -10,7 +10,7 @@ import { Candidate } from "../models/Candidate.model";
 import { ScreeningResult } from "../models/ScreeningResult.model";
 import { PracticalSubmission } from "../models/PracticalSubmission.model";
 import { InterviewSession } from "../models/InterviewSession.model";
-import { getMsBetweenCandidates, sleep } from "../config/llmBatch";
+import { getLlmConcurrency, sleep } from "../config/llmBatch";
 import { buildHrContextStringForJob } from "../services/pipelineHrContext.service";
 import { screenCandidate } from "../services/screening.service";
 import { draftEmailsForStageOutcome, draftPracticalInvitationEmails } from "../services/applicantComms.service";
@@ -78,9 +78,11 @@ async function runScreeningBackground(
   };
   stageRunMap.set(key, status);
 
-  const concurrency = Math.max(1, parseInt(process.env.LLM_CONCURRENCY || "5", 10));
+  const concurrency = getLlmConcurrency(10);
   const results: any[] = [];
+  const failedCandidates: any[] = [];
 
+  // ── Pass 1: screen all candidates concurrently ──────────────────────────
   await runConcurrent(candidates, concurrency, async (candidate) => {
     try {
       const result = await screenCandidate(job, candidate, hrContext, stage.type);
@@ -98,6 +100,7 @@ async function runScreeningBackground(
         name: `${candidate.firstName} ${candidate.lastName}`,
         error: e.message,
       });
+      failedCandidates.push(candidate);
       console.error(`[Pipeline] Error screening ${candidate._id}:`, e.message);
     } finally {
       status.processed++;
@@ -105,11 +108,42 @@ async function runScreeningBackground(
     }
   });
 
-  /* Rank, shortlist, save, emails */
+  // ── Pass 2: auto-retry failed candidates once (with half-concurrency) ───
+  if (failedCandidates.length > 0) {
+    console.log(`[Pipeline] Retrying ${failedCandidates.length} failed candidates…`);
+    await sleep(3000); // brief pause before retry
+    const retryConcurrency = Math.max(1, Math.floor(concurrency / 2));
+    await runConcurrent(failedCandidates, retryConcurrency, async (candidate) => {
+      try {
+        const result = await screenCandidate(job, candidate, hrContext, stage.type);
+        const s = await ScreeningResult.findOneAndUpdate(
+          { jobId, candidateId: candidate._id },
+          { ...result, jobId, candidateId: candidate._id },
+          { upsert: true, new: true }
+        );
+        await Candidate.findByIdAndUpdate(candidate._id, { status: "screened" });
+        results.push(s);
+        // Remove from errors list on success
+        const errIdx = status.errors.findIndex(e => e.candidateId === String(candidate._id));
+        if (errIdx !== -1) { status.errors.splice(errIdx, 1); status.failed--; }
+        stageRunMap.set(key, { ...status });
+      } catch {
+        // Retry also failed — leave in errors list
+      }
+    });
+  }
+
+  // ── Finalize: rank (bulk), shortlist, pipeline update ───────────────────
   try {
     const sorted = results.sort((a: any, b: any) => b.overallScore - a.overallScore);
-    for (let i = 0; i < sorted.length; i++) {
-      await ScreeningResult.findByIdAndUpdate(sorted[i]._id, { rank: i + 1 });
+
+    // Bulk-update ranks in a single MongoDB operation instead of N awaits
+    if (sorted.length > 0) {
+      await ScreeningResult.bulkWrite(
+        sorted.map((s: any, i: number) => ({
+          updateOne: { filter: { _id: s._id }, update: { $set: { rank: i + 1 } } },
+        }))
+      );
     }
 
     const pipeline = await Pipeline.findOne({ jobId });
@@ -148,8 +182,8 @@ async function runScreeningBackground(
   status.done = true;
   stageRunMap.set(key, { ...status });
 
-  // Auto-clean from memory after 15 minutes
-  setTimeout(() => stageRunMap.delete(key), 15 * 60 * 1000);
+  // Auto-clean from memory after 30 minutes (give more room for large batches)
+  setTimeout(() => stageRunMap.delete(key), 30 * 60 * 1000);
 }
 
 /**
@@ -164,30 +198,28 @@ async function applyStageShortlistOutcomes(
   poolIds: mongoose.Types.ObjectId[],
   shortlistedIds: mongoose.Types.ObjectId[]
 ): Promise<void> {
+  if (poolIds.length === 0) return;
   const shortSet = new Set(shortlistedIds.map(id => String(id)));
-  for (const pid of poolIds) {
-    const idStr = String(pid);
-    if (shortSet.has(idStr)) {
-      await Candidate.updateOne(
-        { _id: pid, jobId },
-        {
-          $set: { status: "shortlisted" },
-          $unset: { rejectedAtStageIndex: 1, rejectedAtStageName: 1 },
-        }
-      );
-    } else {
-      await Candidate.updateOne(
-        { _id: pid, jobId },
-        {
-          $set: {
-            status: "rejected",
-            rejectedAtStageIndex: stageIndex,
-            rejectedAtStageName: stageName,
+
+  // Single bulkWrite instead of N sequential updateOne calls
+  await Candidate.bulkWrite(
+    poolIds.map(pid => {
+      if (shortSet.has(String(pid))) {
+        return {
+          updateOne: {
+            filter: { _id: pid, jobId },
+            update: { $set: { status: "shortlisted" }, $unset: { rejectedAtStageIndex: 1, rejectedAtStageName: 1 } },
           },
-        }
-      );
-    }
-  }
+        };
+      }
+      return {
+        updateOne: {
+          filter: { _id: pid, jobId },
+          update: { $set: { status: "rejected", rejectedAtStageIndex: stageIndex, rejectedAtStageName: stageName } },
+        },
+      };
+    })
+  );
 }
 
 function pickAiShortlistIds(
@@ -1369,8 +1401,8 @@ Return ONLY valid JSON:
 }`;
 
       try {
-        const raw = await geminiChatText(prompt, { maxRetries: 2, maxOutputTokens: 800 });
-        const parsed = JSON.parse(raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim());
+        const raw = await geminiChatText(prompt, { maxRetries: 2, maxOutputTokens: 800, jsonMode: true });
+        const parsed = JSON.parse(raw);
         results.push({
           candidateId: String(cid),
           candidateName: candName,

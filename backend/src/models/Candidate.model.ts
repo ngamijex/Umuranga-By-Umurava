@@ -124,5 +124,7 @@ const CandidateSchema = new Schema<ICandidate>(
 );
 
 CandidateSchema.index({ jobId: 1, email: 1 }, { unique: true });
+CandidateSchema.index({ jobId: 1, status: 1 }); // fast bulk-status queries
+CandidateSchema.index({ _id: 1, jobId: 1 }); // fast per-candidate updates during screening
 
 export const Candidate = mongoose.model<ICandidate>("Candidate", CandidateSchema);

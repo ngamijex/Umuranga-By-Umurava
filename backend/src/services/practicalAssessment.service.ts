@@ -80,10 +80,10 @@ ${body}
 Return ONLY valid JSON:
 { "score": <number 0-100>, "feedback": "<2-4 sentences: strengths, gaps, and whether they demonstrated role-relevant skills>" }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, batch: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, batch: true, jsonMode: true });
   let parsed: { score?: number; feedback?: string };
   try {
-    parsed = JSON.parse(stripJsonFence(raw));
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error("AI returned invalid JSON for grading.");
   }
@@ -133,10 +133,10 @@ Return ONLY valid JSON:
 
 Include every candidate exactly once. Ranks must be 1..${subs.length} with no duplicates.`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, batch: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, batch: true, jsonMode: true });
   let parsed: { ranking?: Array<{ candidateId?: string; rank?: number; note?: string }> };
   try {
-    parsed = JSON.parse(stripJsonFence(raw));
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error("AI returned invalid JSON for comparison.");
   }

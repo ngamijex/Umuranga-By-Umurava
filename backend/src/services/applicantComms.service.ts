@@ -120,10 +120,10 @@ Return ONLY valid JSON (no markdown):
   ]
 }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000, batch: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000, batch: true, jsonMode: true });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
-    parsed = JSON.parse(stripJsonFence(raw));
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error("AI returned invalid JSON for email drafts. Try again.");
   }
@@ -218,10 +218,10 @@ Return ONLY valid JSON:
 
 kind always "advance". Body 130–220 words.`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, batch: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, batch: true, jsonMode: true });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
-    parsed = JSON.parse(stripJsonFence(raw));
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error("AI returned invalid JSON for practical invitation drafts.");
   }

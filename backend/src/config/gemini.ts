@@ -34,6 +34,15 @@ function isServiceUnavailable(error: unknown): boolean {
   return msg.includes("503") || msg.includes("service unavailable") || msg.includes("high demand");
 }
 
+/** 404 = model retired/unavailable for this account — immediately fall back, never retry. */
+function isModelUnavailable(error: unknown): boolean {
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    (msg.includes("404") || msg.includes("not found")) &&
+    (msg.includes("no longer available") || msg.includes("model") || msg.includes("deprecated"))
+  );
+}
+
 function parseRetryAfterMs(error: unknown): number | null {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
   const m = msg.match(/retry in\s+(\d+(?:\.\d+)?)s/);
@@ -45,8 +54,8 @@ function parseRetryAfterMs(error: unknown): number | null {
 
 /**
  * Build model candidate list from an env var name (primary) + fallbacks.
- * Batch/pipeline ops use GEMINI_BATCH_MODEL (default: gemini-2.0-flash) which is
- * 5–10× faster than the thinking-enabled gemini-2.5-flash used for quality tasks.
+ * Batch/pipeline ops use GEMINI_BATCH_MODEL (default: gemini-2.0-flash-lite) which is
+ * fast and available on free tier. Quality ops use GEMINI_MODEL (gemini-2.5-flash).
  */
 function getModelCandidates(primaryEnvVar = "GEMINI_MODEL"): string[] {
   const raw = process.env[primaryEnvVar] || process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -59,9 +68,8 @@ function getModelCandidates(primaryEnvVar = "GEMINI_MODEL"): string[] {
         .filter(Boolean)
         .map((m) => (m.startsWith("models/") ? m : `models/${m}`))
     : [
-        "models/gemini-2.0-flash",
-        "models/gemini-2.0-flash-lite",
-        "models/gemini-2.5-flash",
+        "models/gemini-2.0-flash-lite",  // fast, available, free-tier friendly
+        "models/gemini-2.5-flash",        // quality fallback
       ];
 
   return [primary, ...fallbacks.filter((m) => m !== primary)];
@@ -70,10 +78,14 @@ function getModelCandidates(primaryEnvVar = "GEMINI_MODEL"): string[] {
 /**
  * Gemini text generation with retry/backoff for transient limits.
  * Default model: GEMINI_MODEL (or GEMINI_BATCH_MODEL when batch:true).
+ *
+ * jsonMode:true → sets responseMimeType:"application/json" which forces Gemini to always
+ * produce valid, complete JSON (no truncation mid-structure, no markdown fences, no prose).
+ * Always use this when you intend to JSON.parse the response.
  */
 export async function geminiChatText(
   prompt: string,
-  opts?: { maxRetries?: number; maxOutputTokens?: number; temperature?: number; batch?: boolean }
+  opts?: { maxRetries?: number; maxOutputTokens?: number; temperature?: number; batch?: boolean; jsonMode?: boolean }
 ): Promise<string> {
   const maxRetries = opts?.maxRetries ?? 5;
   // batch:true → use GEMINI_BATCH_MODEL (fast, non-thinking) for bulk pipeline ops
@@ -94,6 +106,8 @@ export async function geminiChatText(
         generationConfig: {
           temperature: opts?.temperature ?? 0.2,
           maxOutputTokens: opts?.maxOutputTokens ?? 8192,
+          // Force valid JSON output — eliminates all "Expected ',' or '}'" parse errors
+          ...(opts?.jsonMode ? { responseMimeType: "application/json" } : {}),
         },
       });
       const result = await model.generateContent(prompt);
@@ -101,6 +115,21 @@ export async function geminiChatText(
       return (text ?? "").trim();
     } catch (e) {
       lastError = e;
+
+      // 404 = model is retired/unavailable — immediately switch to next fallback, never wait/retry.
+      if (isModelUnavailable(e)) {
+        const next = modelCandidates.slice(candidateIdx + 1).find(Boolean);
+        if (next) {
+          candidateIdx++;
+          modelName = next;
+          serviceUnavailableAttemptsOnThisModel = 0;
+          console.warn(`[Gemini] Model ${modelCandidates[candidateIdx - 1]} unavailable (404). Switching immediately to ${modelName}…`);
+          continue;
+        }
+        // No more fallbacks — fail fast.
+        throw e;
+      }
+
       // Some keys have a quota of 0 for specific models (often the "free tier" metric).
       // In that case, retrying won't help — fallback to a known-working model once.
       if (!didFallback && isZeroQuotaForModel(e) && modelName !== "models/gemini-2.5-flash") {

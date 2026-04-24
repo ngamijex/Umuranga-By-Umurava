@@ -1,0 +1,4890 @@
+{
+  "candidates": [
+    {
+      "firstName": "Charlotte",
+      "lastName": "Roberts",
+      "email": "roberts.charlotte@outlook.com",
+      "headline": "Data Scientist | Healthcare Analytics",
+      "bio": "Results-oriented Data Scientist skilled in the full data pipeline: from ETL and EDA to model building, validation, and deployment. Experience across FMCG, fintech, and public sector.",
+      "location": "Cape Town, South Africa",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "R",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SQL",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "University of Cape Town",
+          "role": "Research Scientist",
+          "Start Date": "2024-08",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Metabase",
+            "XGBoost"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Cohere",
+          "role": "Analytics Scientist",
+          "Start Date": "2022-07",
+          "End Date": "2023-04",
+          "description": "Led a team of 4 to deliver key business intelligence initiatives on time and budget.",
+          "technologies": [
+            "Statistics",
+            "Node.js"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Airbyte",
+          "role": "Quantitative Analyst",
+          "Start Date": "2020-09",
+          "End Date": "2021-09",
+          "description": "Mentored 4 junior data scientists and conducted regular code reviews.",
+          "technologies": [
+            "Swift",
+            "Apache Spark",
+            "Keras",
+            "Data Visualization"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "McGill University",
+          "degree": "Master's",
+          "Field of Study": "Mathematics",
+          "Start Year": 2018,
+          "End Year": 2020
+        }
+      ],
+      "projects": [
+        {
+          "name": "Customer Churn Prediction",
+          "description": "End-to-end ML pipeline to predict and reduce customer churn using gradient boosting.",
+          "technologies": [
+            "Python",
+            "XGBoost",
+            "AWS SageMaker"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-3992",
+          "Start Date": "2023-01",
+          "End Date": "2023-11"
+        },
+        {
+          "name": "NLP Document Classifier",
+          "description": "Multi-label text classification model for legal document processing, 94% accuracy.",
+          "technologies": [
+            "Python",
+            "Hugging Face",
+            "BERT",
+            "FastAPI"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-1415",
+          "Start Date": "2021-08",
+          "End Date": "2022-11"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Philip",
+      "lastName": "Mukamana",
+      "email": "philip2@yahoo.com",
+      "headline": "Data Engineer | Big Data & Cloud Platforms",
+      "bio": "Data Engineer with 2 years architecting large-scale data pipelines, warehouses, and lakehouse solutions. Expert in Spark, Kafka, and cloud-native data platforms.",
+      "location": "Buenos Aires, Argentina",
+      "skills": [
+        {
+          "name": "Kafka",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Airflow",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "dbt",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Scala",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Hadoop",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Flink",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Spanish",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "CERN",
+          "role": "Data Platform Engineer",
+          "Start Date": "2024-08",
+          "End Date": "Present",
+          "description": "Developed ETL workflows processing 18TB of data daily.",
+          "technologies": [
+            "Deep Learning",
+            "Redis",
+            "SQL"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "American University in Cairo",
+          "degree": "Master's",
+          "Field of Study": "Statistics",
+          "Start Year": 2020,
+          "End Year": 2022
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Esther",
+      "lastName": "Perez",
+      "email": "estherperez@gmail.com",
+      "headline": "Data Engineer | Big Data & Cloud Platforms",
+      "bio": "Senior Data Engineer specialising in real-time streaming analytics and batch processing. Built data infrastructure serving data science teams at scale.",
+      "location": "Abidjan, Côte d'Ivoire",
+      "skills": [
+        {
+          "name": "Kafka",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Airflow",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "ETL Pipelines",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Scala",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Hadoop",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Azure",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Arabic",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "GTBank",
+          "role": "Senior Data Engineer",
+          "Start Date": "2023-08",
+          "End Date": "Present",
+          "description": "Led a team of 2 to deliver key data platform initiatives on time and budget.",
+          "technologies": [
+            "Time Series Analysis",
+            "Python"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Carnegie Mellon University",
+          "degree": "Bachelor's",
+          "Field of Study": "Statistics",
+          "Start Year": 2017,
+          "End Year": 2021
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Maxime",
+      "lastName": "Niyibizi",
+      "email": "mniyibizi@gmail.com",
+      "headline": "Data Scientist | Financial Modelling",
+      "bio": "Data Scientist passionate about turning raw data into strategic advantages. Proven success in customer segmentation, churn prediction, demand forecasting, and A/B testing.",
+      "location": "Conakry, Guinea",
+      "skills": [
+        {
+          "name": "SQL",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Statistics",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "German",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "DataSpark",
+          "role": "Research Scientist",
+          "Start Date": "2024-09",
+          "End Date": "Present",
+          "description": "Developed ETL workflows processing 2TB of data daily.",
+          "technologies": [
+            "SQL",
+            "Data Visualization",
+            "Keras",
+            "React"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "MIT",
+          "role": "Quantitative Analyst",
+          "Start Date": "2021-01",
+          "End Date": "2023-02",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $298K/year.",
+          "technologies": [
+            "Flink",
+            "Swift",
+            "Looker",
+            "Metabase"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "MINECOFIN",
+          "role": "Senior Data Analyst",
+          "Start Date": "2018-12",
+          "End Date": "2020-01",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "QlikView",
+            "Azure"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Stanford University",
+          "degree": "Bachelor's",
+          "Field of Study": "Economics",
+          "Start Year": 2019,
+          "End Year": 2023
+        }
+      ],
+      "projects": [
+        {
+          "name": "Demand Forecasting Platform",
+          "description": "Time-series forecasting system improving supply chain accuracy by 34%.",
+          "technologies": [
+            "Python",
+            "Prophet",
+            "Airflow",
+            "GCP"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-2057",
+          "Start Date": "2022-02",
+          "End Date": "2023-11"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Raj",
+      "lastName": "Rusagara",
+      "email": "rajrusagara@protonmail.com",
+      "headline": "Senior ML Engineer | AI Infrastructure",
+      "bio": "Experienced ML Engineer bridging research and production. Built scalable training pipelines and model serving infrastructure handling billions of predictions daily.",
+      "location": "Conakry, Guinea",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Expert",
+          "yearsOfExperience": 8
+        },
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Statistics",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Netflix",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2022-07",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Scikit-learn",
+            "Java"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "King's College London",
+          "degree": "Bachelor's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2016,
+          "End Year": 2020
+        }
+      ],
+      "projects": [
+        {
+          "name": "Healthcare Triage Model",
+          "description": "ML model for patient triage priority in resource-constrained hospital settings.",
+          "technologies": [
+            "Python",
+            "Scikit-learn",
+            "FastAPI",
+            "PostgreSQL"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-6320",
+          "Start Date": "2022-08",
+          "End Date": "2022-04"
+        },
+        {
+          "name": "Customer Churn Prediction",
+          "description": "End-to-end ML pipeline to predict and reduce customer churn using gradient boosting.",
+          "technologies": [
+            "Python",
+            "XGBoost",
+            "AWS SageMaker"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-4097",
+          "Start Date": "2022-06",
+          "End Date": "2023-08"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Esther",
+      "lastName": "Wilson",
+      "email": "wilson.esther@yahoo.com",
+      "headline": "Data Analyst | Operations Research",
+      "bio": "Detail-oriented Data Analyst skilled in extracting insights from structured and unstructured data. Experience in A/B testing, cohort analysis, and KPI tracking.",
+      "location": "Buenos Aires, Argentina",
+      "skills": [
+        {
+          "name": "Looker",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "PostgreSQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "MySQL",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Neo4j",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Apollo Agriculture",
+          "role": "Junior Data Analyst",
+          "Start Date": "2022-01",
+          "End Date": "Present",
+          "description": "Built scalable operations systems serving 361K+ users.",
+          "technologies": [
+            "Swift",
+            "Data Visualization",
+            "Snowflake",
+            "Kotlin"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Snowflake",
+          "role": "Senior Data Analyst",
+          "Start Date": "2021-08",
+          "End Date": "2022-07",
+          "description": "Built scalable marketing systems serving 197K+ users.",
+          "technologies": [
+            "Docker",
+            "Azure",
+            "Hadoop"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "iROKO",
+          "role": "Operations Analyst",
+          "Start Date": "2018-12",
+          "End Date": "2020-06",
+          "description": "Developed ETL workflows processing 28TB of data daily.",
+          "technologies": [
+            "Redis",
+            "SQL"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Amsterdam",
+          "degree": "Master's",
+          "Field of Study": "Economics",
+          "Start Year": 2017,
+          "End Year": 2019
+        }
+      ],
+      "projects": [
+        {
+          "name": "Clinical Trial Analytics",
+          "description": "Statistical analysis platform for Phase III clinical trial data processing.",
+          "technologies": [
+            "R",
+            "Python",
+            "SAS",
+            "PostgreSQL"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-5286",
+          "Start Date": "2022-12",
+          "End Date": "2023-09"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Mugisha",
+      "lastName": "Ward",
+      "email": "ward.mugisha@gmail.com",
+      "headline": "Analytics Engineer | dbt & Modern Data Stack",
+      "bio": "Analytics Engineer bridging data engineering and analytics. Expert in the modern data stack (dbt, Snowflake, Airflow) and enabling self-service analytics.",
+      "location": "Riyadh, Saudi Arabia",
+      "skills": [
+        {
+          "name": "Apache Spark",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Airflow",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Scala",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Azure",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Databricks",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Kubernetes",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Zulu",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "H2O.ai",
+          "role": "Data Engineer",
+          "Start Date": "2023-07",
+          "End Date": "Present",
+          "description": "Led a team of 7 to deliver key analytics engineering initiatives on time and budget.",
+          "technologies": [
+            "PyTorch",
+            "Docker"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Equity Bank",
+          "role": "Data Engineer",
+          "Start Date": "2020-06",
+          "End Date": "2022-10",
+          "description": "Designed and implemented ML pipelines reducing processing time by 45%.",
+          "technologies": [
+            "Node.js",
+            "MLflow",
+            "Hugging Face"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Vodacom",
+          "role": "Senior Data Engineer",
+          "Start Date": "2017-01",
+          "End Date": "2019-06",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Time Series Analysis",
+            "Scala"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Carnegie Mellon University",
+          "degree": "Bachelor's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2018,
+          "End Year": 2022
+        }
+      ],
+      "projects": [
+        {
+          "name": "Geospatial Analytics Dashboard",
+          "description": "Interactive spatial analytics platform for public health policy decisions.",
+          "technologies": [
+            "Python",
+            "PostGIS",
+            "Kepler.gl",
+            "React"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-7762",
+          "Start Date": "2021-02",
+          "End Date": "2021-05"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "James",
+      "lastName": "Rogers",
+      "email": "jamesrogers@outlook.com",
+      "headline": "Machine Learning Engineer | MLOps & Model Deployment",
+      "bio": "Machine Learning Engineer with 3 years building and deploying production ML systems. Specialised in MLOps, model serving, feature stores, and CI/CD for AI.",
+      "location": "Johannesburg, South Africa",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Statistics",
+          "level": "Intermediate",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "NLP",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "French",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Mila Quebec AI Institute",
+          "role": "AI Engineer",
+          "Start Date": "2024-08",
+          "End Date": "Present",
+          "description": "Delivered 7 end-to-end data products from ideation to production.",
+          "technologies": [
+            "BigQuery",
+            "SQL",
+            "Machine Learning"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "American University in Cairo",
+          "degree": "PhD",
+          "Field of Study": "Computer Science",
+          "Start Year": 2017,
+          "End Year": 2021
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Amelia",
+      "lastName": "Wu",
+      "email": "amelia9@protonmail.com",
+      "headline": "Lead Data Scientist | Predictive Modelling",
+      "bio": "Impact-driven Senior Data Scientist with 7+ years building production ML systems across finance, health, and government sectors. Delivered measurable business value through advanced modelling and real-time analytics.",
+      "location": "Maputo, Mozambique",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Statistics",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Time Series Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Arabic",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "African Development Bank",
+          "role": "Principal Data Scientist",
+          "Start Date": "2023-10",
+          "End Date": "Present",
+          "description": "Developed ETL workflows processing 17TB of data daily.",
+          "technologies": [
+            "GCP",
+            "ETL Pipelines",
+            "Neo4j",
+            "Time Series Analysis"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Cohere",
+          "role": "Data Science Lead",
+          "Start Date": "2021-02",
+          "End Date": "2022-05",
+          "description": "Developed ETL workflows processing 26TB of data daily.",
+          "technologies": [
+            "Time Series Analysis",
+            "Machine Learning"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "HEC Paris",
+          "degree": "Bachelor's",
+          "Field of Study": "Computational Biology",
+          "Start Year": 2019,
+          "End Year": 2023
+        }
+      ],
+      "projects": [
+        {
+          "name": "Sentiment Analysis API",
+          "description": "Production NLP API for social media sentiment analysis serving 10M requests/day.",
+          "technologies": [
+            "Python",
+            "Transformers",
+            "FastAPI",
+            "Docker"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-5035",
+          "Start Date": "2023-07",
+          "End Date": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Maxime",
+      "lastName": "Reed",
+      "email": "maxime10@gmail.com",
+      "headline": "Machine Learning Engineer | MLOps & Model Deployment",
+      "bio": "ML Engineer with strong background in deep learning, transformer models, and distributed training. Passionate about making AI systems reliable and efficient at scale.",
+      "location": "Berlin, Germany",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "ALX Africa",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2022-10",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "AWS",
+            "QlikView"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Qlik",
+          "role": "ML Engineer",
+          "Start Date": "2021-11",
+          "End Date": "2022-06",
+          "description": "Designed and implemented ML pipelines reducing processing time by 60%.",
+          "technologies": [
+            "GCP",
+            "Looker",
+            "Computer Vision",
+            "Power BI"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Pretoria",
+          "degree": "Master's",
+          "Field of Study": "Data Science",
+          "Start Year": 2017,
+          "End Year": 2019
+        }
+      ],
+      "projects": [
+        {
+          "name": "Supply Chain Optimisation",
+          "description": "Network optimisation model reducing logistics costs by 22% using operations research.",
+          "technologies": [
+            "Python",
+            "OR-Tools",
+            "Tableau",
+            "SQL"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-5259",
+          "Start Date": "2024-08",
+          "End Date": "2025-09"
+        },
+        {
+          "name": "Geospatial Analytics Dashboard",
+          "description": "Interactive spatial analytics platform for public health policy decisions.",
+          "technologies": [
+            "Python",
+            "PostGIS",
+            "Kepler.gl",
+            "React"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-1095",
+          "Start Date": "2023-05",
+          "End Date": "2023-09"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Fatimah",
+      "lastName": "Nelson",
+      "email": "nelson.fatimah@gmail.com",
+      "headline": "Data Scientist | Financial Modelling",
+      "bio": "Data Scientist passionate about turning raw data into strategic advantages. Proven success in customer segmentation, churn prediction, demand forecasting, and A/B testing.",
+      "location": "Zurich, Switzerland",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Statistics",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Spanish",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Mandarin",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "MicroStrategy",
+          "role": "Quantitative Analyst",
+          "Start Date": "2023-01",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 21%.",
+          "technologies": [
+            "SQL",
+            "Hadoop",
+            "PostgreSQL",
+            "Statistics"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Interswitch",
+          "role": "Analytics Scientist",
+          "Start Date": "2021-07",
+          "End Date": "2023-01",
+          "description": "Delivered 4 end-to-end data products from ideation to production.",
+          "technologies": [
+            "Statistics",
+            "Apache Spark",
+            "Swift",
+            "Deep Learning"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Paystack",
+          "role": "Quantitative Analyst",
+          "Start Date": "2019-02",
+          "End Date": "2021-09",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $98K/year.",
+          "technologies": [
+            "MySQL",
+            "Scikit-learn",
+            "Keras"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Bristol",
+          "degree": "Master's",
+          "Field of Study": "Mathematics",
+          "Start Year": 2023,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Computer Vision QA System",
+          "description": "Automated quality assurance system detecting manufacturing defects using CNNs.",
+          "technologies": [
+            "Python",
+            "TensorFlow",
+            "OpenCV",
+            "Azure"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-3079",
+          "Start Date": "2022-04",
+          "End Date": "2022-11"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Le",
+      "lastName": "Brown",
+      "email": "brown.le@protonmail.com",
+      "headline": "Data Scientist | Analytics & Predictive Modelling",
+      "bio": "Data Scientist passionate about turning raw data into strategic advantages. Proven success in customer segmentation, churn prediction, demand forecasting, and A/B testing.",
+      "location": "Buenos Aires, Argentina",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Statistics",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "NLP",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Amharic",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Uber",
+          "role": "Quantitative Analyst",
+          "Start Date": "2024-04",
+          "End Date": "Present",
+          "description": "Delivered 3 end-to-end data products from ideation to production.",
+          "technologies": [
+            "C++",
+            "Python",
+            "Hadoop"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Airbnb",
+          "role": "Research Scientist",
+          "Start Date": "2022-09",
+          "End Date": "2023-06",
+          "description": "Developed ETL workflows processing 5TB of data daily.",
+          "technologies": [
+            "AWS",
+            "Java"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "AnalyticsIQ",
+          "role": "Analytics Scientist",
+          "Start Date": "2020-11",
+          "End Date": "2022-04",
+          "description": "Mentored 4 junior data scientists and conducted regular code reviews.",
+          "technologies": [
+            "XGBoost",
+            "TensorFlow",
+            "dbt"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Edinburgh",
+          "degree": "Bachelor's",
+          "Field of Study": "Statistics",
+          "Start Year": 2020,
+          "End Year": 2024
+        }
+      ],
+      "projects": [
+        {
+          "name": "Computer Vision QA System",
+          "description": "Automated quality assurance system detecting manufacturing defects using CNNs.",
+          "technologies": [
+            "Python",
+            "TensorFlow",
+            "OpenCV",
+            "Azure"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-6899",
+          "Start Date": "2024-11",
+          "End Date": "2025-02"
+        },
+        {
+          "name": "Recommendation Engine",
+          "description": "Collaborative filtering recommendation system increasing user engagement by 28%.",
+          "technologies": [
+            "Python",
+            "Spark ALS",
+            "Redis",
+            "AWS"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-1954",
+          "Start Date": "2021-07",
+          "End Date": "2022-12"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Isabella",
+      "lastName": "Nkurunziza",
+      "email": "nkurunziza.isabella@protonmail.com",
+      "headline": "ML Platform Engineer | Scalable AI Systems",
+      "bio": "Machine Learning Engineer with 4 years building and deploying production ML systems. Specialised in MLOps, model serving, feature stores, and CI/CD for AI.",
+      "location": "Amsterdam, Netherlands",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Statistics",
+          "level": "Intermediate",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Computer Vision",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Netflix",
+          "role": "ML Engineer",
+          "Start Date": "2023-01",
+          "End Date": "Present",
+          "description": "Mentored 5 junior data scientists and conducted regular code reviews.",
+          "technologies": [
+            "Tableau",
+            "BigQuery",
+            "Azure",
+            "Hugging Face"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "HSBC",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2019-04",
+          "End Date": "2022-04",
+          "description": "Built scalable ai platform systems serving 436K+ users.",
+          "technologies": [
+            "Azure",
+            "React",
+            "Deep Learning",
+            "Databricks"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Stanford University",
+          "degree": "PhD",
+          "Field of Study": "Data Science",
+          "Start Year": 2018,
+          "End Year": 2022
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Ruth",
+      "lastName": "Liu",
+      "email": "rliu@outlook.com",
+      "headline": "Data Analyst | Insights & Reporting",
+      "bio": "Data Analyst with background in marketing analytics and customer behaviour analysis. Experienced with Google Analytics, Mixpanel, and CRM data systems.",
+      "location": "Johannesburg, South Africa",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Tableau",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "QlikView",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Equity Bank",
+          "role": "Data Analyst",
+          "Start Date": "2024-11",
+          "End Date": "Present",
+          "description": "Improved model accuracy by 12% through feature engineering and hyperparameter tuning.",
+          "technologies": [
+            "C++",
+            "Python"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "St. Andrews University",
+          "degree": "Bachelor's",
+          "Field of Study": "Mathematics",
+          "Start Year": 2021,
+          "End Year": 2025
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Ndayishimiye",
+      "lastName": "Gupta",
+      "email": "gupta.ndayishimiye@icloud.com",
+      "headline": "Data Scientist | Financial Modelling",
+      "bio": "Results-oriented Data Scientist skilled in the full data pipeline: from ETL and EDA to model building, validation, and deployment. Experience across FMCG, fintech, and public sector.",
+      "location": "Casablanca, Morocco",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Amharic",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Yoruba",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "MicroStrategy",
+          "role": "Data Scientist",
+          "Start Date": "2022-02",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Tableau",
+            "Feature Engineering",
+            "Statistics",
+            "Spring Boot"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Bristol",
+          "degree": "Bachelor's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2020,
+          "End Year": 2024
+        }
+      ],
+      "projects": [
+        {
+          "name": "Credit Scoring Model",
+          "description": "Alternative credit scoring model for unbanked populations using mobile data.",
+          "technologies": [
+            "Python",
+            "Scikit-learn",
+            "MongoDB",
+            "GCP"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-1430",
+          "Start Date": "2022-10",
+          "End Date": "2022-03"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Phan",
+      "lastName": "Cooper",
+      "email": "phan.cooper@hotmail.com",
+      "headline": "AI Research Fellow",
+      "bio": "Research Scientist with strong theoretical ML background and peer-reviewed publications. Transitioning from academia to industry data science roles.",
+      "location": "Tel Aviv, Israel",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Advanced",
+          "yearsOfExperience": 8
+        },
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Statistics",
+          "level": "Intermediate",
+          "yearsOfExperience": 6
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Microsoft",
+          "role": "Research Scientist",
+          "Start Date": "2023-03",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $69K/year.",
+          "technologies": [
+            "Vue.js",
+            "Kubernetes"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Apollo Agriculture",
+          "role": "Postdoctoral Researcher",
+          "Start Date": "2021-11",
+          "End Date": "2023-03",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $157K/year.",
+          "technologies": [
+            "Node.js",
+            "Keras",
+            "ETL Pipelines"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "KCB Bank",
+          "role": "AI Research Fellow",
+          "Start Date": "2018-01",
+          "End Date": "2021-11",
+          "description": "Designed and implemented ML pipelines reducing processing time by 33%.",
+          "technologies": [
+            "Time Series Analysis",
+            "ETL Pipelines",
+            "GCP"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Ibadan",
+          "degree": "Master's",
+          "Field of Study": "Computational Biology",
+          "Start Year": 2016,
+          "End Year": 2018
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Internship"
+      }
+    },
+    {
+      "firstName": "Wangui",
+      "lastName": "Bell",
+      "email": "wbell@yahoo.com",
+      "headline": "Entry-Level Data Scientist | Python & Statistics",
+      "bio": "Motivated junior data scientist with a solid foundation in Python, statistics, and machine learning. Currently seeking first professional role in data science.",
+      "location": "Douala, Cameroon",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SQL",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Igbo",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Arabic",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Cambridge",
+          "role": "ML Intern",
+          "Start Date": "2024-12",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 42%.",
+          "technologies": [
+            "GCP",
+            "Machine Learning",
+            "Redshift"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Oliver Wyman",
+          "role": "ML Intern",
+          "Start Date": "2020-01",
+          "End Date": "2023-08",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Python",
+            "Hadoop",
+            "R"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University College London",
+          "degree": "Bachelor's",
+          "Field of Study": "Data Science",
+          "Start Year": 2018,
+          "End Year": 2022
+        }
+      ],
+      "projects": [
+        {
+          "name": "Geospatial Analytics Dashboard",
+          "description": "Interactive spatial analytics platform for public health policy decisions.",
+          "technologies": [
+            "Python",
+            "PostGIS",
+            "Kepler.gl",
+            "React"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-1250",
+          "Start Date": "2024-07",
+          "End Date": "2025-02"
+        },
+        {
+          "name": "Supply Chain Optimisation",
+          "description": "Network optimisation model reducing logistics costs by 22% using operations research.",
+          "technologies": [
+            "Python",
+            "OR-Tools",
+            "Tableau",
+            "SQL"
+          ],
+          "role": "Architect",
+          "link": "https://github.com/project-5785",
+          "Start Date": "2022-06",
+          "End Date": "2022-02"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Carmen",
+      "lastName": "Zhou",
+      "email": "czhou@protonmail.com",
+      "headline": "Software Engineer | Cloud & Microservices",
+      "bio": "Software Engineer with 3 years building scalable backend systems, RESTful APIs, and microservice architectures. Strong in system design and distributed systems.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Java",
+          "level": "Advanced",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "React",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Node.js",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "RISA",
+          "role": "Full-Stack Developer",
+          "Start Date": "2022-02",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $241K/year.",
+          "technologies": [
+            "Feature Engineering",
+            "Python",
+            "Hugging Face",
+            "React"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "AIMS Rwanda",
+          "degree": "Bachelor's",
+          "Field of Study": "Electrical Engineering",
+          "Start Year": 2018,
+          "End Year": 2022
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Not Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Nguyen",
+      "lastName": "Liu",
+      "email": "nguyen19@gmail.com",
+      "headline": "Analytics Engineer | dbt & Modern Data Stack",
+      "bio": "Data Engineer with 7 years architecting large-scale data pipelines, warehouses, and lakehouse solutions. Expert in Spark, Kafka, and cloud-native data platforms.",
+      "location": "Cape Town, South Africa",
+      "skills": [
+        {
+          "name": "Apache Spark",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Kafka",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Airflow",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Scala",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Flink",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "German",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "MTN Group",
+          "role": "Analytics Engineer",
+          "Start Date": "2024-03",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Elasticsearch",
+            "GCP"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Vodacom",
+          "role": "Analytics Engineer",
+          "Start Date": "2022-04",
+          "End Date": "2023-09",
+          "description": "Mentored 2 junior data scientists and conducted regular code reviews.",
+          "technologies": [
+            "Kafka",
+            "C++"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Bain",
+          "role": "Data Engineer",
+          "Start Date": "2018-06",
+          "End Date": "2021-04",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $141K/year.",
+          "technologies": [
+            "Statistics",
+            "Scikit-learn",
+            "Java",
+            "Snowflake"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Institut Polytechnique de Paris",
+          "degree": "Master's",
+          "Field of Study": "Statistics",
+          "Start Year": 2019,
+          "End Year": 2021
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Actively Looking",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Joshua",
+      "lastName": "Rugamba",
+      "email": "rugamba.joshua@outlook.com",
+      "headline": "ML Engineer | Deep Learning & NLP",
+      "bio": "ML Engineer with strong background in deep learning, transformer models, and distributed training. Passionate about making AI systems reliable and efficient at scale.",
+      "location": "Riyadh, Saudi Arabia",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "NLP",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "TensorFlow",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "WFP",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2022-10",
+          "End Date": "Present",
+          "description": "Built scalable ai platform systems serving 57K+ users.",
+          "technologies": [
+            "BigQuery",
+            "C++"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Accenture",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2021-09",
+          "End Date": "2022-02",
+          "description": "Led a team of 2 to deliver key research engineering initiatives on time and budget.",
+          "technologies": [
+            "Elasticsearch",
+            "C++"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kwame Nkrumah University",
+          "degree": "PhD",
+          "Field of Study": "Applied Mathematics",
+          "Start Year": 2021,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Real-Time Fraud Detection",
+          "description": "Streaming fraud detection system processing 50K transactions/second with <10ms latency.",
+          "technologies": [
+            "Kafka",
+            "Spark",
+            "Python",
+            "Redis"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-2247",
+          "Start Date": "2022-08",
+          "End Date": "2022-11"
+        },
+        {
+          "name": "Price Optimisation Engine",
+          "description": "Dynamic pricing model using reinforcement learning for e-commerce platform.",
+          "technologies": [
+            "Python",
+            "Ray RLlib",
+            "Kafka",
+            "AWS"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-1534",
+          "Start Date": "2024-04",
+          "End Date": "2025-11"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Kamau",
+      "lastName": "Boateng",
+      "email": "kamauboateng@outlook.com",
+      "headline": "Data Scientist | Healthcare Analytics",
+      "bio": "Results-oriented Data Scientist skilled in the full data pipeline: from ETL and EDA to model building, validation, and deployment. Experience across FMCG, fintech, and public sector.",
+      "location": "New York, USA",
+      "skills": [
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Statistics",
+          "level": "Expert",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Computer Vision",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Time Series Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Scikit-learn",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Weights & Biases",
+          "role": "Research Scientist",
+          "Start Date": "2024-06",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "C#",
+            "Node.js",
+            "NLP"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Ghana",
+          "degree": "Bachelor's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2014,
+          "End Year": 2018
+        }
+      ],
+      "projects": [
+        {
+          "name": "Geospatial Analytics Dashboard",
+          "description": "Interactive spatial analytics platform for public health policy decisions.",
+          "technologies": [
+            "Python",
+            "PostGIS",
+            "Kepler.gl",
+            "React"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-1321",
+          "Start Date": "2024-06",
+          "End Date": "2024-04"
+        },
+        {
+          "name": "Recommendation Engine",
+          "description": "Collaborative filtering recommendation system increasing user engagement by 28%.",
+          "technologies": [
+            "Python",
+            "Spark ALS",
+            "Redis",
+            "AWS"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-1692",
+          "Start Date": "2022-03",
+          "End Date": "2023-05"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Gathoni",
+      "lastName": "Davis",
+      "email": "gathoni.davis22@outlook.com",
+      "headline": "Data Analyst | Operations Research",
+      "bio": "Detail-oriented Data Analyst skilled in extracting insights from structured and unstructured data. Experience in A/B testing, cohort analysis, and KPI tracking.",
+      "location": "Delhi, India",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Tableau",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "QlikView",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "PostgreSQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "MongoDB",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Hausa",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Uber",
+          "role": "Senior Data Analyst",
+          "Start Date": "2022-12",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 44%.",
+          "technologies": [
+            "Looker",
+            "MLflow"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Econet",
+          "role": "Operations Analyst",
+          "Start Date": "2019-12",
+          "End Date": "2021-05",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $205K/year.",
+          "technologies": [
+            "Redis",
+            "MongoDB",
+            "Hugging Face"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "BCG",
+          "role": "Data Analyst",
+          "Start Date": "2017-05",
+          "End Date": "2019-07",
+          "description": "Developed ETL workflows processing 20TB of data daily.",
+          "technologies": [
+            "Swift",
+            "Scikit-learn",
+            "Python"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "American University in Cairo",
+          "degree": "Bachelor's",
+          "Field of Study": "Statistics",
+          "Start Year": 2018,
+          "End Year": 2022
+        }
+      ],
+      "projects": [
+        {
+          "name": "Geospatial Analytics Dashboard",
+          "description": "Interactive spatial analytics platform for public health policy decisions.",
+          "technologies": [
+            "Python",
+            "PostGIS",
+            "Kepler.gl",
+            "React"
+          ],
+          "role": "Architect",
+          "link": "https://github.com/project-7976",
+          "Start Date": "2024-09",
+          "End Date": "2024-05"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Antoine",
+      "lastName": "Balde",
+      "email": "balde.antoine@hotmail.com",
+      "headline": "Full-Stack Developer | React & Node.js",
+      "bio": "Full-stack developer with expertise in React, Node.js, and cloud-native application development. Experience in fintech and e-commerce platforms.",
+      "location": "New York, USA",
+      "skills": [
+        {
+          "name": "Spring Boot",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Angular",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "PHP",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "C#",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Swift",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Arabic",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "JP Morgan",
+          "role": "Full-Stack Developer",
+          "Start Date": "2022-10",
+          "End Date": "Present",
+          "description": "Improved model accuracy by 20% through feature engineering and hyperparameter tuning.",
+          "technologies": [
+            "dbt",
+            "BigQuery"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "University of Nairobi",
+          "role": "Software Engineer",
+          "Start Date": "2018-08",
+          "End Date": "2021-07",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $173K/year.",
+          "technologies": [
+            "Hadoop",
+            "Node.js",
+            "Hugging Face",
+            "dbt"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Sokowatch",
+          "role": "DevOps Engineer",
+          "Start Date": "2015-03",
+          "End Date": "2017-07",
+          "description": "Improved model accuracy by 30% through feature engineering and hyperparameter tuning.",
+          "technologies": [
+            "Machine Learning",
+            "GCP",
+            "PHP"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Carnegie Mellon University",
+          "degree": "Bachelor's",
+          "Field of Study": "Information Technology",
+          "Start Year": 2016,
+          "End Year": 2020
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Not Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Miguel",
+      "lastName": "Ward",
+      "email": "miguel.ward@icloud.com",
+      "headline": "Data Analyst | Marketing Analytics",
+      "bio": "Detail-oriented Data Analyst skilled in extracting insights from structured and unstructured data. Experience in A/B testing, cohort analysis, and KPI tracking.",
+      "location": "Nairobi, Kenya",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Tableau",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Looker",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "QlikView",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Neo4j",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "OPIC",
+          "role": "Data Analyst",
+          "Start Date": "2022-02",
+          "End Date": "Present",
+          "description": "Developed ETL workflows processing 45TB of data daily.",
+          "technologies": [
+            "Angular",
+            "Databricks"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Carnegie Mellon University",
+          "degree": "Master's",
+          "Field of Study": "Statistics",
+          "Start Year": 2023,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Demand Forecasting Platform",
+          "description": "Time-series forecasting system improving supply chain accuracy by 34%.",
+          "technologies": [
+            "Python",
+            "Prophet",
+            "Airflow",
+            "GCP"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-4825",
+          "Start Date": "2024-09",
+          "End Date": "2024-08"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Le",
+      "lastName": "Obi",
+      "email": "le25@icloud.com",
+      "headline": "Senior Data Scientist | ML & AI Systems",
+      "bio": "Impact-driven Senior Data Scientist with 10+ years building production ML systems across finance, health, and government sectors. Delivered measurable business value through advanced modelling and real-time analytics.",
+      "location": "Melbourne, Australia",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Statistics",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "NLP",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Computer Vision",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Time Series Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Absa",
+          "role": "Staff Data Scientist",
+          "Start Date": "2023-05",
+          "End Date": "Present",
+          "description": "Led a team of 6 to deliver key data science initiatives on time and budget.",
+          "technologies": [
+            "MLflow",
+            "NLP",
+            "Kubeflow"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "MicroStrategy",
+          "role": "Senior Data Scientist",
+          "Start Date": "2020-09",
+          "End Date": "2023-11",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "GCP",
+            "Statistics",
+            "Kubeflow",
+            "PyTorch"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "City of Kigali",
+          "role": "Lead Data Scientist",
+          "Start Date": "2017-05",
+          "End Date": "2020-01",
+          "description": "Designed and implemented ML pipelines reducing processing time by 41%.",
+          "technologies": [
+            "Machine Learning",
+            "Looker",
+            "dbt"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "AIMS Senegal",
+          "degree": "PhD",
+          "Field of Study": "Applied Mathematics",
+          "Start Year": 2014,
+          "End Year": 2018
+        }
+      ],
+      "projects": [
+        {
+          "name": "Customer Churn Prediction",
+          "description": "End-to-end ML pipeline to predict and reduce customer churn using gradient boosting.",
+          "technologies": [
+            "Python",
+            "XGBoost",
+            "AWS SageMaker"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-1263",
+          "Start Date": "2023-03",
+          "End Date": "2023-06"
+        },
+        {
+          "name": "Financial Reporting Automation",
+          "description": "Automated financial consolidation and reporting system replacing 40 manual hours/month.",
+          "technologies": [
+            "Python",
+            "Power BI",
+            "SQL",
+            "Azure"
+          ],
+          "role": "Architect",
+          "link": "https://github.com/project-7549",
+          "Start Date": "2024-04",
+          "End Date": "2025-08"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Mei",
+      "lastName": "Phillips",
+      "email": "phillips.mei@gmail.com",
+      "headline": "Data Scientist | Business Intelligence & ML",
+      "bio": "Results-oriented Data Scientist skilled in the full data pipeline: from ETL and EDA to model building, validation, and deployment. Experience across FMCG, fintech, and public sector.",
+      "location": "Accra, Ghana",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Statistics",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Igbo",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Rwanda Coding Academy",
+          "role": "Data Scientist",
+          "Start Date": "2023-02",
+          "End Date": "Present",
+          "description": "Delivered 7 end-to-end data products from ideation to production.",
+          "technologies": [
+            "Machine Learning",
+            "Swift"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "DataRobot",
+          "role": "Research Scientist",
+          "Start Date": "2020-01",
+          "End Date": "2022-04",
+          "description": "Developed ETL workflows processing 37TB of data daily.",
+          "technologies": [
+            "Tableau",
+            "Python"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Nanyang Technological University",
+          "degree": "Master's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2021,
+          "End Year": 2023
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Catherine",
+      "lastName": "Wu",
+      "email": "catherinewu@yahoo.com",
+      "headline": "Data Scientist | Healthcare Analytics",
+      "bio": "Data Scientist with 5 years of experience applying statistical and ML techniques to solve real-world business problems. Strong communicator who translates data into actionable recommendations.",
+      "location": "Cairo, Egypt",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "NLP",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Hausa",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "BPR",
+          "role": "Research Scientist",
+          "Start Date": "2022-06",
+          "End Date": "Present",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Airflow",
+            "Python"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Cape Town",
+          "degree": "Master's",
+          "Field of Study": "Economics",
+          "Start Year": 2022,
+          "End Year": 2024
+        }
+      ],
+      "projects": [
+        {
+          "name": "Demand Forecasting Platform",
+          "description": "Time-series forecasting system improving supply chain accuracy by 34%.",
+          "technologies": [
+            "Python",
+            "Prophet",
+            "Airflow",
+            "GCP"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-7600",
+          "Start Date": "2022-01",
+          "End Date": "2023-09"
+        },
+        {
+          "name": "Computer Vision QA System",
+          "description": "Automated quality assurance system detecting manufacturing defects using CNNs.",
+          "technologies": [
+            "Python",
+            "TensorFlow",
+            "OpenCV",
+            "Azure"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-4898",
+          "Start Date": "2021-07",
+          "End Date": "2021-08"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Otieno",
+      "lastName": "Torres",
+      "email": "otienotorres@icloud.com",
+      "headline": "Data Scientist | Financial Modelling",
+      "bio": "Data Scientist with 5 years of experience applying statistical and ML techniques to solve real-world business problems. Strong communicator who translates data into actionable recommendations.",
+      "location": "Sydney, Australia",
+      "skills": [
+        {
+          "name": "SQL",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Arabic",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Morgan Stanley",
+          "role": "Quantitative Analyst",
+          "Start Date": "2024-05",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 20%.",
+          "technologies": [
+            "PostgreSQL",
+            "AWS",
+            "BigQuery",
+            "Feature Engineering"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "BPR",
+          "role": "Research Scientist",
+          "Start Date": "2021-02",
+          "End Date": "2023-01",
+          "description": "Improved model accuracy by 22% through feature engineering and hyperparameter tuning.",
+          "technologies": [
+            "Apache Spark",
+            "SQL",
+            "Kafka",
+            "Kubernetes"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "World Health Organisation",
+          "role": "Quantitative Analyst",
+          "Start Date": "2020-07",
+          "End Date": "2021-01",
+          "description": "Developed ETL workflows processing 4TB of data daily.",
+          "technologies": [
+            "XGBoost",
+            "Looker"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kwame Nkrumah University",
+          "degree": "Bachelor's",
+          "Field of Study": "Statistics",
+          "Start Year": 2020,
+          "End Year": 2024
+        }
+      ],
+      "projects": [
+        {
+          "name": "Data Lakehouse Architecture",
+          "description": "Enterprise data lake migration from on-prem to cloud-native architecture.",
+          "technologies": [
+            "Databricks",
+            "Delta Lake",
+            "Spark",
+            "Azure"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-4807",
+          "Start Date": "2021-08",
+          "End Date": "2021-02"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Emma",
+      "lastName": "Mutabazi",
+      "email": "emma29@outlook.com",
+      "headline": "Junior Data Scientist | ML & Analytics",
+      "bio": "Motivated junior data scientist with a solid foundation in Python, statistics, and machine learning. Currently seeking first professional role in data science.",
+      "location": "Toronto, Canada",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Hausa",
+          "proficiency": "Native"
+        },
+        {
+          "name": "German",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "City of Kigali",
+          "role": "Research Assistant",
+          "Start Date": "2024-10",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $52K/year.",
+          "technologies": [
+            "TensorFlow",
+            "Node.js"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Makerere University",
+          "degree": "Bachelor's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2017,
+          "End Year": 2021
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Nomsa",
+      "lastName": "Walker",
+      "email": "nomsa.walker30@gmail.com",
+      "headline": "Quant Researcher | Algorithmic Trading",
+      "bio": "Quantitative Analyst with 2 years building pricing models, risk frameworks, and algorithmic trading strategies. Strong background in stochastic calculus and applied statistics.",
+      "location": "Luanda, Angola",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Spanish",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "RDB",
+          "role": "Quantitative Analyst",
+          "Start Date": "2023-08",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 47%.",
+          "technologies": [
+            "PostgreSQL",
+            "R",
+            "SQL"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University College London",
+          "degree": "Master's",
+          "Field of Study": "Economics",
+          "Start Year": 2020,
+          "End Year": 2022
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Actively Looking",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Elizabeth",
+      "lastName": "King",
+      "email": "king.elizabeth@gmail.com",
+      "headline": "Management Consultant",
+      "bio": "Senior BA with expertise in Agile delivery, business process modelling, and system requirements. Some exposure to data analytics tools for reporting.",
+      "location": "Auckland, New Zealand",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Tableau",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "University of Nairobi",
+          "role": "Product Analyst",
+          "Start Date": "2023-07",
+          "End Date": "Present",
+          "description": "Mentored 3 junior data scientists and conducted regular code reviews.",
+          "technologies": [
+            "Swift",
+            "XGBoost"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Carnegie Mellon University",
+          "degree": "Master's",
+          "Field of Study": "MBA",
+          "Start Year": 2023,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Recommendation Engine",
+          "description": "Collaborative filtering recommendation system increasing user engagement by 28%.",
+          "technologies": [
+            "Python",
+            "Spark ALS",
+            "Redis",
+            "AWS"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-5632",
+          "Start Date": "2023-09",
+          "End Date": "2023-02"
+        },
+        {
+          "name": "Energy Consumption Forecasting",
+          "description": "LSTM-based load forecasting for national grid optimisation.",
+          "technologies": [
+            "Python",
+            "TensorFlow",
+            "InfluxDB",
+            "Grafana"
+          ],
+          "role": "Contributor",
+          "link": "https://github.com/project-1527",
+          "Start Date": "2023-06",
+          "End Date": "2023-10"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Internship"
+      }
+    },
+    {
+      "firstName": "François",
+      "lastName": "Rutaganda",
+      "email": "rutaganda.franois@protonmail.com",
+      "headline": "Risk Analyst | Statistical Modelling",
+      "bio": "Quant Researcher focused on systematic trading and portfolio optimisation. Experienced with time series modelling, factor models, and backtesting frameworks.",
+      "location": "Melbourne, Australia",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Statistics",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "PyTorch",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "French",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Zulu",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Absa",
+          "role": "Risk Modelling Analyst",
+          "Start Date": "2023-10",
+          "End Date": "Present",
+          "description": "Improved model accuracy by 30% through feature engineering and hyperparameter tuning.",
+          "technologies": [
+            "BigQuery",
+            "Time Series Analysis",
+            "Elasticsearch"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "IMF",
+          "role": "Financial Engineer",
+          "Start Date": "2020-05",
+          "End Date": "2023-11",
+          "description": "Built scalable finance systems serving 40K+ users.",
+          "technologies": [
+            "Node.js",
+            "Hadoop"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Carnegie Mellon University Africa",
+          "degree": "Master's",
+          "Field of Study": "Economics",
+          "Start Year": 2019,
+          "End Year": 2021
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Rebekah",
+      "lastName": "Gao",
+      "email": "rebekah33@yahoo.com",
+      "headline": "Business Systems Analyst",
+      "bio": "Business Analyst with 3 years bridging business and technical teams. Skilled in requirements gathering, process mapping, and stakeholder management.",
+      "location": "Mumbai, India",
+      "skills": [
+        {
+          "name": "QlikView",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "MongoDB",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Safaricom",
+          "role": "Product Analyst",
+          "Start Date": "2024-09",
+          "End Date": "Present",
+          "description": "Improved model accuracy by 22% through feature engineering and hyperparameter tuning.",
+          "technologies": [
+            "Machine Learning",
+            "Angular",
+            "Statistics"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Copia",
+          "role": "Senior Business Analyst",
+          "Start Date": "2022-03",
+          "End Date": "2024-05",
+          "description": "Built scalable operations systems serving 272K+ users.",
+          "technologies": [
+            "Keras",
+            "Scikit-learn",
+            "MongoDB"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Splunk",
+          "role": "Management Consultant",
+          "Start Date": "2019-12",
+          "End Date": "2022-07",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $157K/year.",
+          "technologies": [
+            "Kotlin",
+            "Hadoop",
+            "React",
+            "Unity"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Yale University",
+          "degree": "Master's",
+          "Field of Study": "MBA",
+          "Start Year": 2020,
+          "End Year": 2022
+        }
+      ],
+      "projects": [
+        {
+          "name": "Real-Time Fraud Detection",
+          "description": "Streaming fraud detection system processing 50K transactions/second with <10ms latency.",
+          "technologies": [
+            "Kafka",
+            "Spark",
+            "Python",
+            "Redis"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-3337",
+          "Start Date": "2021-04",
+          "End Date": "2022-10"
+        }
+      ],
+      "availability": {
+        "status": "Actively Looking",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Bongani",
+      "lastName": "Flores",
+      "email": "bflores@icloud.com",
+      "headline": "Head of Product | Consumer Apps",
+      "bio": "Product Manager with 8 years leading cross-functional teams to deliver user-centric software products. Data-informed decision maker with no hands-on data science.",
+      "location": "Auckland, New Zealand",
+      "skills": [
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "IFC",
+          "role": "Associate PM",
+          "Start Date": "2024-06",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $180K/year.",
+          "technologies": [
+            "Machine Learning",
+            "SQL",
+            "Apache Spark",
+            "Node.js"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Weights & Biases",
+          "role": "Director of Product",
+          "Start Date": "2021-02",
+          "End Date": "2023-11",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "Looker",
+            "Flink",
+            "Python",
+            "AWS"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "AIMS Senegal",
+          "degree": "Master's",
+          "Field of Study": "Psychology",
+          "Start Year": 2019,
+          "End Year": 2021
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Rania",
+      "lastName": "Mwangi",
+      "email": "rania35@hotmail.com",
+      "headline": "Machine Learning Engineer | MLOps & Model Deployment",
+      "bio": "Machine Learning Engineer with 3 years building and deploying production ML systems. Specialised in MLOps, model serving, feature stores, and CI/CD for AI.",
+      "location": "Douala, Cameroon",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "NLP",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Computer Vision",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Time Series Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Igbo",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Arabic",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "IMF",
+          "role": "Senior ML Engineer",
+          "Start Date": "2024-02",
+          "End Date": "Present",
+          "description": "Built scalable research engineering systems serving 406K+ users.",
+          "technologies": [
+            "Kotlin",
+            "TensorFlow"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Pretoria",
+          "degree": "PhD",
+          "Field of Study": "Electrical Engineering",
+          "Start Year": 2015,
+          "End Year": 2019
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Hannah",
+      "lastName": "Nsengiyumva",
+      "email": "hannah.nsengiyumva36@icloud.com",
+      "headline": "Senior PM | Data Products",
+      "bio": "Experienced PM with background in consumer apps and B2B SaaS. Comfortable with product analytics and SQL queries for basic metrics, but not a data science practitioner.",
+      "location": "Buenos Aires, Argentina",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "NITA-U",
+          "role": "CPO",
+          "Start Date": "2022-07",
+          "End Date": "Present",
+          "description": "Developed ETL workflows processing 50TB of data daily.",
+          "technologies": [
+            "PostgreSQL",
+            "Hugging Face",
+            "MongoDB",
+            "ETL Pipelines"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Andela",
+          "role": "CPO",
+          "Start Date": "2018-10",
+          "End Date": "2021-08",
+          "description": "Built scalable strategy systems serving 410K+ users.",
+          "technologies": [
+            "Neo4j",
+            "AWS",
+            "Machine Learning",
+            "Feature Engineering"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University College London",
+          "degree": "Bachelor's",
+          "Field of Study": "MBA",
+          "Start Year": 2021,
+          "End Year": 2025
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Andrew",
+      "lastName": "Coulibaly",
+      "email": "coulibaly.andrew@hotmail.com",
+      "headline": "Data Science Lead | Enterprise AI",
+      "bio": "Impact-driven Senior Data Scientist with 5+ years building production ML systems across finance, health, and government sectors. Delivered measurable business value through advanced modelling and real-time analytics.",
+      "location": "Seattle, USA",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Expert",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "R",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "TensorFlow",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "French",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Mila Quebec AI Institute",
+          "role": "Principal Data Scientist",
+          "Start Date": "2024-03",
+          "End Date": "Present",
+          "description": "Delivered 6 end-to-end data products from ideation to production.",
+          "technologies": [
+            "Angular",
+            "Redis",
+            "Elasticsearch"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "DataSpark",
+          "role": "Lead Data Scientist",
+          "Start Date": "2021-08",
+          "End Date": "2024-06",
+          "description": "Built real-time dashboards tracking 34 business metrics for senior leadership.",
+          "technologies": [
+            "Time Series Analysis",
+            "Databricks"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Cambridge",
+          "degree": "PhD",
+          "Field of Study": "Physics",
+          "Start Year": 2014,
+          "End Year": 2018
+        }
+      ],
+      "projects": [
+        {
+          "name": "Social Network Analysis",
+          "description": "Graph-based analysis of financial transaction networks for AML compliance.",
+          "technologies": [
+            "Python",
+            "Neo4j",
+            "NetworkX",
+            "Gephi"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-3925",
+          "Start Date": "2022-07",
+          "End Date": "2023-12"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Esther",
+      "lastName": "Kagame",
+      "email": "kagame.esther@gmail.com",
+      "headline": "Data Engineer | ETL & Data Warehousing",
+      "bio": "Data Engineer with 6 years architecting large-scale data pipelines, warehouses, and lakehouse solutions. Expert in Spark, Kafka, and cloud-native data platforms.",
+      "location": "Buenos Aires, Argentina",
+      "skills": [
+        {
+          "name": "Apache Spark",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Kafka",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "ETL Pipelines",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "dbt",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Hadoop",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Flink",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Amharic",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "KCB Bank",
+          "role": "Data Engineer",
+          "Start Date": "2023-11",
+          "End Date": "Present",
+          "description": "Delivered 12 end-to-end data products from ideation to production.",
+          "technologies": [
+            "Power BI",
+            "Hadoop",
+            "Statistics",
+            "Spring Boot"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "NISR",
+          "role": "Senior Data Engineer",
+          "Start Date": "2020-05",
+          "End Date": "2023-06",
+          "description": "Designed and implemented ML pipelines reducing processing time by 31%.",
+          "technologies": [
+            "LightGBM",
+            "Feature Engineering",
+            "Kubernetes",
+            "PyTorch"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Oxford",
+          "degree": "Bachelor's",
+          "Field of Study": "Computer Science",
+          "Start Year": 2019,
+          "End Year": 2023
+        }
+      ],
+      "projects": [
+        {
+          "name": "Financial Reporting Automation",
+          "description": "Automated financial consolidation and reporting system replacing 40 manual hours/month.",
+          "technologies": [
+            "Python",
+            "Power BI",
+            "SQL",
+            "Azure"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-8893",
+          "Start Date": "2021-07",
+          "End Date": "2022-05"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Nshimiyimana",
+      "lastName": "Campbell",
+      "email": "nshimiyimana39@gmail.com",
+      "headline": "ML Engineer | Deep Learning & NLP",
+      "bio": "ML Engineer with strong background in deep learning, transformer models, and distributed training. Passionate about making AI systems reliable and efficient at scale.",
+      "location": "Cairo, Egypt",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "NLP",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Rwanda Revenue Authority",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2024-11",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $126K/year.",
+          "technologies": [
+            "XGBoost",
+            "LightGBM",
+            "Docker"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "IMF",
+          "role": "AI Engineer",
+          "Start Date": "2022-04",
+          "End Date": "2023-04",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $277K/year.",
+          "technologies": [
+            "MLflow",
+            "NLP",
+            "Neo4j",
+            "Angular"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kwame Nkrumah University",
+          "degree": "PhD",
+          "Field of Study": "Computer Science",
+          "Start Year": 2021,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Recommendation Engine",
+          "description": "Collaborative filtering recommendation system increasing user engagement by 28%.",
+          "technologies": [
+            "Python",
+            "Spark ALS",
+            "Redis",
+            "AWS"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-7075",
+          "Start Date": "2022-08",
+          "End Date": "2023-01"
+        },
+        {
+          "name": "Supply Chain Optimisation",
+          "description": "Network optimisation model reducing logistics costs by 22% using operations research.",
+          "technologies": [
+            "Python",
+            "OR-Tools",
+            "Tableau",
+            "SQL"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-4631",
+          "Start Date": "2022-08",
+          "End Date": "2023-02"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Ishimwe",
+      "lastName": "Torres",
+      "email": "torres.ishimwe@yahoo.com",
+      "headline": "Data Analyst | Marketing Analytics",
+      "bio": "Data Analyst with 4 years supporting decision-making through data collection, analysis, and reporting. Proficient in SQL, Excel, and Python for data manipulation.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Looker",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "QlikView",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Google",
+          "role": "Data Analyst",
+          "Start Date": "2024-08",
+          "End Date": "Present",
+          "description": "Built real-time dashboards tracking 12 business metrics for senior leadership.",
+          "technologies": [
+            "Metabase",
+            "Neo4j",
+            "Node.js"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Bain",
+          "role": "Data Analyst",
+          "Start Date": "2020-02",
+          "End Date": "2023-08",
+          "description": "Developed ETL workflows processing 20TB of data daily.",
+          "technologies": [
+            "Redis",
+            "Scikit-learn"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "BCG",
+          "role": "Operations Analyst",
+          "Start Date": "2018-02",
+          "End Date": "2019-03",
+          "description": "Led a team of 5 to deliver key marketing initiatives on time and budget.",
+          "technologies": [
+            "Unity",
+            "Machine Learning",
+            "React"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Princeton University",
+          "degree": "Master's",
+          "Field of Study": "Psychology",
+          "Start Year": 2022,
+          "End Year": 2024
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Actively Looking",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Abayomi",
+      "lastName": "Allen",
+      "email": "abayomi41@protonmail.com",
+      "headline": "Machine Learning Engineer | MLOps & Model Deployment",
+      "bio": "Experienced ML Engineer bridging research and production. Built scalable training pipelines and model serving infrastructure handling billions of predictions daily.",
+      "location": "Douala, Cameroon",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Advanced",
+          "yearsOfExperience": 8
+        },
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "SQL",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "NLP",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Zulu",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Goldman Sachs",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2023-07",
+          "End Date": "Present",
+          "description": "Built real-time dashboards tracking 61 business metrics for senior leadership.",
+          "technologies": [
+            "BigQuery",
+            "SQL"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Airbnb",
+          "role": "Machine Learning Engineer",
+          "Start Date": "2022-04",
+          "End Date": "2023-07",
+          "description": "Led a team of 8 to deliver key research engineering initiatives on time and budget.",
+          "technologies": [
+            "Vue.js",
+            "Swift",
+            "SQL",
+            "Machine Learning"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "National University of Singapore",
+          "degree": "Bachelor's",
+          "Field of Study": "Data Science",
+          "Start Year": 2020,
+          "End Year": 2024
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Rebekah",
+      "lastName": "Mensah",
+      "email": "rebekahmensah@protonmail.com",
+      "headline": "Data Scientist | Analytics & Predictive Modelling",
+      "bio": "Data Scientist passionate about turning raw data into strategic advantages. Proven success in customer segmentation, churn prediction, demand forecasting, and A/B testing.",
+      "location": "Harare, Zimbabwe",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Feature Engineering",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Yoruba",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Orange",
+          "role": "Research Scientist",
+          "Start Date": "2023-09",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $144K/year.",
+          "technologies": [
+            "Flink",
+            "Hadoop"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Orange",
+          "role": "Research Scientist",
+          "Start Date": "2020-11",
+          "End Date": "2023-01",
+          "description": "Designed and implemented ML pipelines reducing processing time by 50%.",
+          "technologies": [
+            "Feature Engineering",
+            "Apache Spark",
+            "Deep Learning"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Ibadan",
+          "degree": "Master's",
+          "Field of Study": "Economics",
+          "Start Year": 2023,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Sentiment Analysis API",
+          "description": "Production NLP API for social media sentiment analysis serving 10M requests/day.",
+          "technologies": [
+            "Python",
+            "Transformers",
+            "FastAPI",
+            "Docker"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-5395",
+          "Start Date": "2023-06",
+          "End Date": "2024-04"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Fang",
+      "lastName": "Reed",
+      "email": "reed.fang@icloud.com",
+      "headline": "BI Analyst | Dashboards & Data Storytelling",
+      "bio": "Senior BI Developer with expertise in building enterprise-grade reporting solutions. Strong in data modelling, DAX, and building self-service analytics environments.",
+      "location": "Dubai, UAE",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Looker",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "MongoDB",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Standard Bank",
+          "role": "BI Developer",
+          "Start Date": "2023-01",
+          "End Date": "Present",
+          "description": "Mentored 3 junior data scientists and conducted regular code reviews.",
+          "technologies": [
+            "Hadoop",
+            "PostgreSQL"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Warwick",
+          "degree": "Master's",
+          "Field of Study": "Finance",
+          "Start Year": 2020,
+          "End Year": 2022
+        }
+      ],
+      "projects": [
+        {
+          "name": "Demand Forecasting Platform",
+          "description": "Time-series forecasting system improving supply chain accuracy by 34%.",
+          "technologies": [
+            "Python",
+            "Prophet",
+            "Airflow",
+            "GCP"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-1643",
+          "Start Date": "2024-05",
+          "End Date": "2024-03"
+        },
+        {
+          "name": "Sentiment Analysis API",
+          "description": "Production NLP API for social media sentiment analysis serving 10M requests/day.",
+          "technologies": [
+            "Python",
+            "Transformers",
+            "FastAPI",
+            "Docker"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-9229",
+          "Start Date": "2022-09",
+          "End Date": "2022-08"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Hannah",
+      "lastName": "Reddy",
+      "email": "hannah44@yahoo.com",
+      "headline": "Analytics Engineer | dbt & Modern Data Stack",
+      "bio": "Analytics Engineer bridging data engineering and analytics. Expert in the modern data stack (dbt, Snowflake, Airflow) and enabling self-service analytics.",
+      "location": "Harare, Zimbabwe",
+      "skills": [
+        {
+          "name": "dbt",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Flink",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "AWS",
+          "level": "Expert",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Azure",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "BigQuery",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "UBA",
+          "role": "Senior Data Engineer",
+          "Start Date": "2022-06",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 49%.",
+          "technologies": [
+            "R",
+            "PyTorch",
+            "Swift"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "MIT",
+          "role": "Analytics Engineer",
+          "Start Date": "2021-08",
+          "End Date": "2022-12",
+          "description": "Built scalable data engineering systems serving 103K+ users.",
+          "technologies": [
+            "Databricks",
+            "ETL Pipelines",
+            "Tableau"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Meta AI Research",
+          "role": "Data Platform Engineer",
+          "Start Date": "2020-09",
+          "End Date": "2021-10",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "PyTorch",
+            "Tableau"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Pretoria",
+          "degree": "Bachelor's",
+          "Field of Study": "Information Systems",
+          "Start Year": 2016,
+          "End Year": 2020
+        }
+      ],
+      "projects": [
+        {
+          "name": "Clinical Trial Analytics",
+          "description": "Statistical analysis platform for Phase III clinical trial data processing.",
+          "technologies": [
+            "R",
+            "Python",
+            "SAS",
+            "PostgreSQL"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-5939",
+          "Start Date": "2022-01",
+          "End Date": "2022-03"
+        },
+        {
+          "name": "Recommendation Engine",
+          "description": "Collaborative filtering recommendation system increasing user engagement by 28%.",
+          "technologies": [
+            "Python",
+            "Spark ALS",
+            "Redis",
+            "AWS"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-9256",
+          "Start Date": "2023-07",
+          "End Date": "2024-04"
+        }
+      ],
+      "availability": {
+        "status": "Actively Looking",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Blessing",
+      "lastName": "Young",
+      "email": "blessing.young45@hotmail.com",
+      "headline": "Data Scientist | Healthcare Analytics",
+      "bio": "Results-oriented Data Scientist skilled in the full data pipeline: from ETL and EDA to model building, validation, and deployment. Experience across FMCG, fintech, and public sector.",
+      "location": "Harare, Zimbabwe",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Expert",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "R",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        },
+        {
+          "name": "Mandarin",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Anthropic",
+          "role": "Analytics Scientist",
+          "Start Date": "2024-01",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $222K/year.",
+          "technologies": [
+            "Python",
+            "Vue.js",
+            "XGBoost"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Bristol",
+          "degree": "Master's",
+          "Field of Study": "Data Science",
+          "Start Year": 2023,
+          "End Year": 2025
+        }
+      ],
+      "projects": [
+        {
+          "name": "Data Lakehouse Architecture",
+          "description": "Enterprise data lake migration from on-prem to cloud-native architecture.",
+          "technologies": [
+            "Databricks",
+            "Delta Lake",
+            "Spark",
+            "Azure"
+          ],
+          "role": "Developer",
+          "link": "https://github.com/project-7777",
+          "Start Date": "2023-06",
+          "End Date": "2024-02"
+        },
+        {
+          "name": "Energy Consumption Forecasting",
+          "description": "LSTM-based load forecasting for national grid optimisation.",
+          "technologies": [
+            "Python",
+            "TensorFlow",
+            "InfluxDB",
+            "Grafana"
+          ],
+          "role": "Architect",
+          "link": "https://github.com/project-9453",
+          "Start Date": "2023-01",
+          "End Date": "2023-12"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Wachira",
+      "lastName": "Habimana",
+      "email": "habimana.wachira@protonmail.com",
+      "headline": "Full-Stack Developer | React & Node.js",
+      "bio": "Software Engineer with 8 years building scalable backend systems, RESTful APIs, and microservice architectures. Strong in system design and distributed systems.",
+      "location": "Dubai, UAE",
+      "skills": [
+        {
+          "name": "React",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Node.js",
+          "level": "Expert",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Angular",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "World Health Organisation",
+          "role": "Backend Developer",
+          "Start Date": "2024-08",
+          "End Date": "Present",
+          "description": "Delivered 3 end-to-end data products from ideation to production.",
+          "technologies": [
+            "Time Series Analysis",
+            "NLP",
+            "AWS",
+            "PyTorch"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Sokowatch",
+          "role": "Backend Developer",
+          "Start Date": "2023-07",
+          "End Date": "2024-08",
+          "description": "Delivered 9 end-to-end data products from ideation to production.",
+          "technologies": [
+            "MongoDB",
+            "Python",
+            "Feature Engineering",
+            "Vue.js"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Edinburgh",
+          "degree": "Bachelor's",
+          "Field of Study": "Electrical Engineering",
+          "Start Year": 2021,
+          "End Year": 2025
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Not Available",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Camila",
+      "lastName": "Eze",
+      "email": "camilaeze@gmail.com",
+      "headline": "Quantitative Analyst | Financial Modelling & Risk",
+      "bio": "Quant Researcher focused on systematic trading and portfolio optimisation. Experienced with time series modelling, factor models, and backtesting frameworks.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Python",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "R",
+          "level": "Advanced",
+          "yearsOfExperience": 6
+        },
+        {
+          "name": "Machine Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 7
+        },
+        {
+          "name": "Data Visualization",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "EBRD",
+          "role": "Financial Engineer",
+          "Start Date": "2023-06",
+          "End Date": "Present",
+          "description": "Built real-time dashboards tracking 21 business metrics for senior leadership.",
+          "technologies": [
+            "R",
+            "Statistics"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kwame Nkrumah University",
+          "degree": "Master's",
+          "Field of Study": "Applied Mathematics",
+          "Start Year": 2022,
+          "End Year": 2024
+        }
+      ],
+      "projects": [
+        {
+          "name": "Social Network Analysis",
+          "description": "Graph-based analysis of financial transaction networks for AML compliance.",
+          "technologies": [
+            "Python",
+            "Neo4j",
+            "NetworkX",
+            "Gephi"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-8365",
+          "Start Date": "2021-11",
+          "End Date": "2021-05"
+        },
+        {
+          "name": "Data Lakehouse Architecture",
+          "description": "Enterprise data lake migration from on-prem to cloud-native architecture.",
+          "technologies": [
+            "Databricks",
+            "Delta Lake",
+            "Spark",
+            "Azure"
+          ],
+          "role": "Lead",
+          "link": "https://github.com/project-1194",
+          "Start Date": "2022-03",
+          "End Date": "2023-05"
+        }
+      ],
+      "availability": {
+        "status": "Actively Looking",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "Ava",
+      "lastName": "Liu",
+      "email": "ava.liu@gmail.com",
+      "headline": "Data Engineer | Big Data & Cloud Platforms",
+      "bio": "Analytics Engineer bridging data engineering and analytics. Expert in the modern data stack (dbt, Snowflake, Airflow) and enabling self-service analytics.",
+      "location": "Cairo, Egypt",
+      "skills": [
+        {
+          "name": "Kafka",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "ETL Pipelines",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "dbt",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Scala",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Flink",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Vector Institute",
+          "role": "Senior Data Engineer",
+          "Start Date": "2022-07",
+          "End Date": "Present",
+          "description": "Designed and implemented ML pipelines reducing processing time by 50%.",
+          "technologies": [
+            "BigQuery",
+            "Neo4j",
+            "Scala"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "Zenith Bank",
+          "role": "ETL Developer",
+          "Start Date": "2020-12",
+          "End Date": "2022-04",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $181K/year.",
+          "technologies": [
+            "Swift",
+            "MySQL"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "DeepMind",
+          "role": "Senior Data Engineer",
+          "Start Date": "2017-02",
+          "End Date": "2019-10",
+          "description": "Led a team of 2 to deliver key data engineering initiatives on time and budget.",
+          "technologies": [
+            "BigQuery",
+            "Kubernetes"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Bristol",
+          "degree": "Bachelor's",
+          "Field of Study": "Statistics",
+          "Start Year": 2014,
+          "End Year": 2018
+        }
+      ],
+      "projects": [
+        {
+          "name": "Customer Churn Prediction",
+          "description": "End-to-end ML pipeline to predict and reduce customer churn using gradient boosting.",
+          "technologies": [
+            "Python",
+            "XGBoost",
+            "AWS SageMaker"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-9363",
+          "Start Date": "2022-10",
+          "End Date": "2022-09"
+        },
+        {
+          "name": "Real-Time Fraud Detection",
+          "description": "Streaming fraud detection system processing 50K transactions/second with <10ms latency.",
+          "technologies": [
+            "Kafka",
+            "Spark",
+            "Python",
+            "Redis"
+          ],
+          "role": "Researcher",
+          "link": "https://github.com/project-8366",
+          "Start Date": "2022-01",
+          "End Date": "2022-04"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      }
+    },
+    {
+      "firstName": "David",
+      "lastName": "Chen",
+      "email": "david.chen49@protonmail.com",
+      "headline": "Quant Researcher | Algorithmic Trading",
+      "bio": "Quant Researcher focused on systematic trading and portfolio optimisation. Experienced with time series modelling, factor models, and backtesting frameworks.",
+      "location": "Lagos, Nigeria",
+      "skills": [
+        {
+          "name": "R",
+          "level": "Expert",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Deep Learning",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Statistics",
+          "level": "Expert",
+          "yearsOfExperience": 6
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Twiga Foods",
+          "role": "Actuary",
+          "Start Date": "2024-08",
+          "End Date": "Present",
+          "description": "Built scalable risk systems serving 114K+ users.",
+          "technologies": [
+            "Time Series Analysis",
+            "Airflow",
+            "PHP"
+          ],
+          "Is Current": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "TU Delft",
+          "degree": "Master's",
+          "Field of Study": "Financial Mathematics",
+          "Start Year": 2018,
+          "End Year": 2020
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    },
+    {
+      "firstName": "Akua",
+      "lastName": "Martin",
+      "email": "amartin@yahoo.com",
+      "headline": "Data Engineer | Big Data & Cloud Platforms",
+      "bio": "Data Engineer with 6 years architecting large-scale data pipelines, warehouses, and lakehouse solutions. Expert in Spark, Kafka, and cloud-native data platforms.",
+      "location": "Abidjan, Côte d'Ivoire",
+      "skills": [
+        {
+          "name": "Kafka",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Airflow",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "dbt",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Scala",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Hadoop",
+          "level": "Advanced",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "GCP",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Conversational"
+        },
+        {
+          "name": "Portuguese",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Igbo",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Orange",
+          "role": "Data Engineer",
+          "Start Date": "2024-09",
+          "End Date": "Present",
+          "description": "Migrated legacy reporting systems to cloud-native architecture, saving $128K/year.",
+          "technologies": [
+            "ETL Pipelines",
+            "Java",
+            "MLflow",
+            "PHP"
+          ],
+          "Is Current": true
+        },
+        {
+          "company": "World Health Organisation",
+          "role": "ETL Developer",
+          "Start Date": "2021-08",
+          "End Date": "2024-01",
+          "description": "Designed and implemented ML pipelines reducing processing time by 16%.",
+          "technologies": [
+            "Azure",
+            "R",
+            "SQL"
+          ],
+          "Is Current": false
+        },
+        {
+          "company": "Oliver Wyman",
+          "role": "Senior Data Engineer",
+          "Start Date": "2018-11",
+          "End Date": "2021-10",
+          "description": "Collaborated with cross-functional teams to define KPIs and analytics roadmap.",
+          "technologies": [
+            "PostgreSQL",
+            "TensorFlow",
+            "Snowflake",
+            "BigQuery"
+          ],
+          "Is Current": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "King's College London",
+          "degree": "Master's",
+          "Field of Study": "Statistics",
+          "Start Year": 2021,
+          "End Year": 2023
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      }
+    }
+  ]
+}

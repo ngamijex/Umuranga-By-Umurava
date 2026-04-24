@@ -1304,9 +1304,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [screening, setScreening] = useState(false);
   const [screenMsg, setScreenMsg] = useState("");
   const [addMode, setAddMode] = useState<"form" | "json" | "csv" | "paste" | "zip" | null>(null);
-  const [jsonText, setJsonText] = useState(""); const [jsonErr, setJsonErr] = useState("");
+  const [jsonText, setJsonText] = useState(""); const [jsonErr, setJsonErr] = useState(""); const [jsonUploading, setJsonUploading] = useState(false);
   const [csvRows, setCsvRows] = useState<any[]>([]); const [csvErr, setCsvErr] = useState(""); const [csvUploading, setCsvUploading] = useState(false);
-  const [pasteText, setPasteText] = useState(""); const [pasteErr, setPasteErr] = useState("");
+  const [pasteText, setPasteText] = useState(""); const [pasteErr, setPasteErr] = useState(""); const [pasteUploading, setPasteUploading] = useState(false);
   const [zipFile, setZipFile] = useState<File | null>(null); const [zipUploading, setZipUploading] = useState(false); const [zipResult, setZipResult] = useState<any>(null); const [zipErr, setZipErr] = useState("");
   const [addForm, setAddForm] = useState({ firstName: "", lastName: "", email: "", headline: "", location: "", skills: "", skillLevel: "Intermediate", role: "", company: "", degree: "Bachelor's", institution: "", fieldOfStudy: "", availStatus: "Available", availType: "Full-time", linkedin: "", github: "" });
   const [saving, setSaving] = useState(false);
@@ -1806,7 +1806,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   };
 
   const bulkUpload = async () => {
-    setJsonErr("");
+    setJsonErr(""); setJsonUploading(true);
     try {
       const parsed = JSON.parse(jsonText);
       const arr = extractCandidateArray(parsed);
@@ -1814,6 +1814,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       const { data } = await api.get(`/candidates?jobId=${selJob!._id}`);
       setCandidates(data.data); setAddMode(null); setJsonText("");
     } catch (e: any) { setJsonErr(e.response?.data?.error || "Invalid JSON or server error"); }
+    finally { setJsonUploading(false); }
   };
 
   const buildTalentRow = (r: Record<string, string>) => ({
@@ -1864,12 +1865,13 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const pasteUpload = async () => {
     const rows = parsePaste(pasteText);
     if (!rows.length) { setPasteErr("No valid rows. Use: Name, Email, Role, Skills (;-sep), Yrs, Education"); return; }
-    setPasteErr("");
+    setPasteErr(""); setPasteUploading(true);
     try {
       await api.post("/candidates/bulk", { candidates: rows, jobId: selJob!._id });
       const { data } = await api.get(`/candidates?jobId=${selJob!._id}`);
       setCandidates(data.data); setAddMode(null); setPasteText("");
     } catch (e: any) { setPasteErr(e.response?.data?.error || "Upload failed"); }
+    finally { setPasteUploading(false); }
   };
 
   const zipUpload = async () => {
@@ -2345,9 +2347,15 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       <input type="file" accept=".csv,text/csv" onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = ev => { const rows = parseCSV(ev.target?.result as string); setCsvRows(rows); setCsvErr(rows.length ? "" : "No valid rows found."); }; reader.readAsText(file); }} />
                       {csvRows.length > 0 && <div style={{ background: "#f0fdf4", borderRadius: "8px", padding: "10px 12px", border: "1px solid #86efac" }}><p style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600, margin: "0 0 4px" }}>{csvRows.length} candidates ready</p>{csvRows.slice(0, 3).map((r: any, i: number) => <p key={i} style={{ fontSize: "0.7rem", color: "#374151", margin: 0 }}>{r.firstName} {r.lastName} · {r.email}</p>)}{csvRows.length > 3 && <p style={{ fontSize: "0.68rem", color: "#94a3b8", margin: 0 }}>+{csvRows.length - 3} more…</p>}</div>}
                       {csvErr && <p style={{ color: "#dc2626", fontSize: "0.75rem", margin: 0 }}>{csvErr}</p>}
+                      {csvUploading && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "8px", background: "#f0fdf4", border: "1px solid #86efac" }}>
+                          <Loader2 style={{ width: "15px", height: "15px", color: "#16a34a", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                          <span style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 600 }}>Uploading {csvRows.length} candidates… please wait.</span>
+                        </div>
+                      )}
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button onClick={() => { setAddMode(null); setCsvRows([]); setCsvErr(""); }} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>Cancel</button>
-                        <button onClick={csvUpload} disabled={!csvRows.length || csvUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#16a34a", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !csvRows.length ? 0.5 : 1 }}>{csvUploading ? "Uploading…" : `Import ${csvRows.length || ""}`}</button>
+                        <button onClick={() => { setAddMode(null); setCsvRows([]); setCsvErr(""); }} disabled={csvUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: csvUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600, opacity: csvUploading ? 0.5 : 1 }}>Cancel</button>
+                        <button onClick={csvUpload} disabled={!csvRows.length || csvUploading} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: "#16a34a", color: "#fff", border: "none", cursor: !csvRows.length || csvUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !csvRows.length ? 0.5 : 1 }}>{csvUploading && <Loader2 style={{ width: "13px", height: "13px", animation: "spin 1s linear infinite" }} />}{csvUploading ? "Uploading…" : `Import ${csvRows.length || ""}`}</button>
                       </div>
                     </div>
                   )}
@@ -2355,23 +2363,35 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>Paste from spreadsheet</p>
                       <p style={{ fontSize: "0.68rem", color: "#94a3b8", margin: 0 }}>Columns: <code style={{ background: "#f1f5f9", padding: "1px 5px", borderRadius: "4px" }}>FirstName, LastName, Email, Headline, Location, Skills(;sep), Role, Company</code></p>
-                      <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={5} placeholder={"Jane\tDoe\tjane@acme.com\tBackend Engineer\tKigali,Rwanda\tPython;SQL\tEngineer\tAcme"} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d8b4fe", fontSize: "0.78rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical" }} />
+                      <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={5} disabled={pasteUploading} placeholder={"Jane\tDoe\tjane@acme.com\tBackend Engineer\tKigali,Rwanda\tPython;SQL\tEngineer\tAcme"} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d8b4fe", fontSize: "0.78rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical", opacity: pasteUploading ? 0.5 : 1 }} />
                       {pasteErr && <p style={{ color: "#dc2626", fontSize: "0.75rem", margin: 0 }}>{pasteErr}</p>}
+                      {pasteUploading && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "8px", background: "#f5f3ff", border: "1px solid #d8b4fe" }}>
+                          <Loader2 style={{ width: "15px", height: "15px", color: "#7c3aed", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                          <span style={{ fontSize: "0.75rem", color: "#6d28d9", fontWeight: 600 }}>Uploading candidates…</span>
+                        </div>
+                      )}
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button onClick={() => { setAddMode(null); setPasteText(""); setPasteErr(""); }} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>Cancel</button>
-                        <button onClick={pasteUpload} style={{ padding: "9px 20px", borderRadius: "8px", background: "#7c3aed", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>Import</button>
+                        <button onClick={() => { setAddMode(null); setPasteText(""); setPasteErr(""); }} disabled={pasteUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: pasteUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600, opacity: pasteUploading ? 0.5 : 1 }}>Cancel</button>
+                        <button onClick={pasteUpload} disabled={pasteUploading || !pasteText.trim()} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: "#7c3aed", color: "#fff", border: "none", cursor: pasteUploading || !pasteText.trim() ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !pasteText.trim() ? 0.5 : 1 }}>{pasteUploading && <Loader2 style={{ width: "13px", height: "13px", animation: "spin 1s linear infinite" }} />}{pasteUploading ? "Uploading…" : "Import"}</button>
                       </div>
                     </div>
                   )}
                   {addMode === "json" && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>Paste or load JSON</p>
-                      <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", border: "1px dashed #fed7aa", cursor: "pointer", fontSize: "0.75rem", color: "#ea580c", fontWeight: 600, width: "fit-content" }}><Upload style={{ width: "13px", height: "13px" }} />Load .json file<input type="file" accept=".json" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setJsonText(ev.target?.result as string); r.readAsText(f); }} /></label>
-                      <textarea value={jsonText} onChange={e => setJsonText(e.target.value)} rows={6} placeholder={'{"applicants": [{"firstName":"...","email":"...",...}]}'} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #fed7aa", fontSize: "0.75rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical" }} />
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", border: "1px dashed #fed7aa", cursor: jsonUploading ? "not-allowed" : "pointer", fontSize: "0.75rem", color: "#ea580c", fontWeight: 600, width: "fit-content", opacity: jsonUploading ? 0.5 : 1 }}><Upload style={{ width: "13px", height: "13px" }} />Load .json file<input type="file" accept=".json" disabled={jsonUploading} style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setJsonText(ev.target?.result as string); r.readAsText(f); }} /></label>
+                      <textarea value={jsonText} onChange={e => setJsonText(e.target.value)} rows={6} disabled={jsonUploading} placeholder={'{"applicants": [{"firstName":"...","email":"...",...}]}'} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #fed7aa", fontSize: "0.75rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical", opacity: jsonUploading ? 0.5 : 1 }} />
                       {jsonErr && <p style={{ color: "#dc2626", fontSize: "0.75rem", margin: 0 }}>{jsonErr}</p>}
+                      {jsonUploading && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "8px", background: "#fff7ed", border: "1px solid #fed7aa" }}>
+                          <Loader2 style={{ width: "15px", height: "15px", color: "#ea580c", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                          <span style={{ fontSize: "0.75rem", color: "#c2410c", fontWeight: 600 }}>Uploading candidates… this may take a moment for large files.</span>
+                        </div>
+                      )}
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button onClick={() => { setAddMode(null); setJsonText(""); setJsonErr(""); }} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>Cancel</button>
-                        <button onClick={bulkUpload} style={{ padding: "9px 20px", borderRadius: "8px", background: "#ea580c", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>Upload</button>
+                        <button onClick={() => { setAddMode(null); setJsonText(""); setJsonErr(""); }} disabled={jsonUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: jsonUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600, opacity: jsonUploading ? 0.5 : 1 }}>Cancel</button>
+                        <button onClick={bulkUpload} disabled={jsonUploading || !jsonText.trim()} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: jsonUploading ? "#f97316" : "#ea580c", color: "#fff", border: "none", cursor: jsonUploading || !jsonText.trim() ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !jsonText.trim() ? 0.5 : 1 }}>{jsonUploading && <Loader2 style={{ width: "13px", height: "13px", animation: "spin 1s linear infinite" }} />}{jsonUploading ? "Uploading…" : "Upload"}</button>
                       </div>
                     </div>
                   )}
@@ -2733,17 +2753,30 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "#2b72f0", margin: 0 }}>AI Screening Playground</h3>
                 {pipelineLoading && <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} />}
                 {pipelineMsg && <span style={{ fontSize: "0.75rem", color: pipelineRunning ? "#2b72f0" : "#16a34a", fontWeight: 600 }}>{pipelineMsg}</span>}
-              {stageRunProgress && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div style={{ width: 140, height: 6, borderRadius: 4, background: "#e2e8f0", overflow: "hidden" }}>
-                    <div style={{ height: "100%", borderRadius: 4, background: "#2b72f0", width: `${Math.round((stageRunProgress.processed / stageRunProgress.total) * 100)}%`, transition: "width 0.5s ease" }} />
+              {stageRunProgress && (() => {
+                const pct = stageRunProgress.total > 0 ? Math.round((stageRunProgress.processed / stageRunProgress.total) * 100) : 0;
+                // ETA: based on elapsed time and remaining candidates
+                const startedAt = (stageRunProgress as any).startedAt;
+                let etaStr = "";
+                if (startedAt && stageRunProgress.processed > 0 && pct < 100) {
+                  const elapsedMs = Date.now() - new Date(startedAt).getTime();
+                  const msPerCandidate = elapsedMs / stageRunProgress.processed;
+                  const remaining = stageRunProgress.total - stageRunProgress.processed;
+                  const etaSec = Math.round((msPerCandidate * remaining) / 1000);
+                  etaStr = etaSec > 60 ? ` · ~${Math.round(etaSec / 60)}m left` : ` · ~${etaSec}s left`;
+                }
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: 160, height: 7, borderRadius: 4, background: "#e2e8f0", overflow: "hidden" }}>
+                      <div style={{ height: "100%", borderRadius: 4, background: "#2b72f0", width: `${pct}%`, transition: "width 0.5s ease" }} />
+                    </div>
+                    <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {stageRunProgress.processed}/{stageRunProgress.total} ({pct}%){etaStr}
+                      {stageRunProgress.failed > 0 && <span style={{ color: "#ef4444" }}> · {stageRunProgress.failed} failed</span>}
+                    </span>
                   </div>
-                  <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>
-                    {stageRunProgress.processed}/{stageRunProgress.total}
-                    {stageRunProgress.failed > 0 && <span style={{ color: "#ef4444" }}> · {stageRunProgress.failed} failed</span>}
-                  </span>
-                </div>
-              )}
+                );
+              })()}
                 {rollbackMsg && !rollbackConfirmIdx && <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600 }}>{rollbackMsg}</span>}
               </div>
 
