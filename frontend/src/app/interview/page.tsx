@@ -183,6 +183,66 @@ function ScoreRing({ value, label, color }: { value: number; label: string; colo
   );
 }
 
+type TourStep = {
+  id: string;
+  selector: string;
+  title: string;
+  body: string;
+  placement?: "top" | "bottom" | "left" | "right";
+};
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    id: "you-video",
+    selector: "[data-tour='you-video']",
+    title: "This is your camera preview.",
+    body: "Stay centered and well-lit. You can keep your camera on, or turn it off anytime.",
+    placement: "right",
+  },
+  {
+    id: "mic",
+    selector: "[data-tour='mic-indicator']",
+    title: "Your microphone is always listening.",
+    body: "You don’t need to press any button. After the AI finishes speaking, just start talking naturally.",
+    placement: "top",
+  },
+  {
+    id: "captions",
+    selector: "[data-tour='captions-toggle']",
+    title: "Captions show what the AI says.",
+    body: "Captions are on by default so you can read along. Toggle them on/off any time.",
+    placement: "top",
+  },
+  {
+    id: "camera-toggle",
+    selector: "[data-tour='camera-toggle']",
+    title: "Camera toggle.",
+    body: "If you need privacy or low bandwidth, you can switch the camera off. Audio stays on for your answers.",
+    placement: "top",
+  },
+  {
+    id: "end",
+    selector: "[data-tour='end-button']",
+    title: "End the interview anytime.",
+    body: "If something goes wrong or you’re done, click End. Your conversation so far will be saved.",
+    placement: "top",
+  },
+  {
+    id: "ai-panel",
+    selector: "[data-tour='ai-panel']",
+    title: "AI interviewer panel.",
+    body: "Watch the status: Speaking → Waiting → Listening. When it’s Waiting, you can answer.",
+    placement: "left",
+  },
+  {
+    id: "ready",
+    selector: "[data-tour='start-cta']",
+    title: "When you’re ready, start the interview.",
+    body: "You’ll get a 10‑second countdown to get comfortable before the first question begins.",
+    placement: "top",
+  },
+];
+
 
 export default function InterviewPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -508,70 +568,10 @@ export default function InterviewPage() {
     startCountdownThenBegin();
   }, [startCountdownThenBegin]);
 
-  type TourStep = {
-    id: string;
-    selector: string;
-    title: string;
-    body: string;
-    placement?: "top" | "bottom" | "left" | "right";
-  };
-
-  const tourSteps: TourStep[] = [
-    {
-      id: "you-video",
-      selector: "[data-tour='you-video']",
-      title: "This is your camera preview.",
-      body: "Stay centered and well-lit. You can keep your camera on, or turn it off anytime.",
-      placement: "right",
-    },
-    {
-      id: "mic",
-      selector: "[data-tour='mic-indicator']",
-      title: "Your microphone is always listening.",
-      body: "You don’t need to press any button. After the AI finishes speaking, just start talking naturally.",
-      placement: "top",
-    },
-    {
-      id: "captions",
-      selector: "[data-tour='captions-toggle']",
-      title: "Captions show what the AI says.",
-      body: "Captions are on by default so you can read along. Toggle them on/off any time.",
-      placement: "top",
-    },
-    {
-      id: "camera-toggle",
-      selector: "[data-tour='camera-toggle']",
-      title: "Camera toggle.",
-      body: "If you need privacy or low bandwidth, you can switch the camera off. Audio stays on for your answers.",
-      placement: "top",
-    },
-    {
-      id: "end",
-      selector: "[data-tour='end-button']",
-      title: "End the interview anytime.",
-      body: "If something goes wrong or you’re done, click End. Your conversation so far will be saved.",
-      placement: "top",
-    },
-    {
-      id: "ai-panel",
-      selector: "[data-tour='ai-panel']",
-      title: "AI interviewer panel.",
-      body: "Watch the status: Speaking → Waiting → Listening. When it’s Waiting, you can answer.",
-      placement: "left",
-    },
-    {
-      id: "ready",
-      selector: "[data-tour='start-cta']",
-      title: "When you’re ready, start the interview.",
-      body: "You’ll get a 10‑second countdown to get comfortable before the first question begins.",
-      placement: "top",
-    },
-  ];
-
   const computeTourSpot = useCallback(() => {
     if (typeof window === "undefined") return;
     if (phase !== "tour") return;
-    const step = tourSteps[Math.min(tourStep, tourSteps.length - 1)];
+    const step = TOUR_STEPS[Math.min(tourStep, TOUR_STEPS.length - 1)];
     const el = document.querySelector(step.selector) as HTMLElement | null;
     if (!el) {
       setTourTargetMissing(true);
@@ -587,7 +587,7 @@ export default function InterviewPage() {
       w: Math.min(window.innerWidth, r.width + pad * 2),
       h: Math.min(window.innerHeight, r.height + pad * 2),
     });
-  }, [phase, tourStep, tourSteps]);
+  }, [phase, tourStep]);
 
   useEffect(() => {
     computeTourSpot();
@@ -826,8 +826,8 @@ export default function InterviewPage() {
 
           {/* tooltip card */}
           {(() => {
-            const step = tourSteps[Math.min(tourStep, tourSteps.length - 1)];
-            const total = tourSteps.length;
+            const step = TOUR_STEPS[Math.min(tourStep, TOUR_STEPS.length - 1)];
+            const total = TOUR_STEPS.length;
             const cardW = 380;
             const margin = 14;
             const anchor = tourSpot
