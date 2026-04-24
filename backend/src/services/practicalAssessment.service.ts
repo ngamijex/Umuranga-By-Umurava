@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import pdfParse from "pdf-parse";
 import { geminiChatText } from "../config/gemini";
+import { jsonrepair } from "jsonrepair";
 import { Job } from "../models/Job.model";
 import { Candidate } from "../models/Candidate.model";
 import { PracticalSubmission, IPracticalSubmission } from "../models/PracticalSubmission.model";
@@ -80,12 +81,16 @@ ${body}
 Return ONLY valid JSON:
 { "score": <number 0-100>, "feedback": "<2-4 sentences: strengths, gaps, and whether they demonstrated role-relevant skills>" }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, batch: true, jsonMode: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, jsonMode: true });
+  const fb = raw.indexOf("{"); const lb = raw.lastIndexOf("}");
+  const jsonStr = fb !== -1 && lb > fb ? raw.slice(fb, lb + 1) : raw;
+
   let parsed: { score?: number; feedback?: string };
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(jsonStr);
   } catch {
-    throw new Error("AI returned invalid JSON for grading.");
+    try { parsed = JSON.parse(jsonrepair(jsonStr)); }
+    catch { throw new Error("AI returned invalid JSON for grading."); }
   }
   const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0)));
   const feedback = String(parsed.feedback || "").trim() || "No feedback provided.";
@@ -133,12 +138,16 @@ Return ONLY valid JSON:
 
 Include every candidate exactly once. Ranks must be 1..${subs.length} with no duplicates.`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, batch: true, jsonMode: true });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 1024, jsonMode: true });
+  const fb2 = raw.indexOf("{"); const lb2 = raw.lastIndexOf("}");
+  const jsonStr2 = fb2 !== -1 && lb2 > fb2 ? raw.slice(fb2, lb2 + 1) : raw;
+
   let parsed: { ranking?: Array<{ candidateId?: string; rank?: number; note?: string }> };
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(jsonStr2);
   } catch {
-    throw new Error("AI returned invalid JSON for comparison.");
+    try { parsed = JSON.parse(jsonrepair(jsonStr2)); }
+    catch { throw new Error("AI returned invalid JSON for comparison."); }
   }
 
   const ranking = parsed.ranking || [];
