@@ -271,6 +271,11 @@ export default function InterviewPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const aiAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const aiElementSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const recognitionRef = useRef<any>(null);
   const capturedRef = useRef("");
   const sendRef = useRef<((text: string) => Promise<void>) | null>(null);
@@ -322,11 +327,30 @@ export default function InterviewPage() {
         videoRef.current.muted = true;
         videoRef.current.play().catch(() => {});
       }
+      // Setup mixed audio graph once (mic + AI audio element) so recordings include AI voice.
+      if (typeof window !== "undefined") {
+        const ctx = audioCtxRef.current ?? new AudioContext();
+        audioCtxRef.current = ctx;
+        const dest = audioDestRef.current ?? ctx.createMediaStreamDestination();
+        audioDestRef.current = dest;
+        if (!micSourceRef.current) {
+          const micStream = new MediaStream(stream.getAudioTracks());
+          micSourceRef.current = ctx.createMediaStreamSource(micStream);
+          micSourceRef.current.connect(dest);
+        }
+      }
+
       if (opts?.startRecorder !== false) {
-        // Ensure the mic track is enabled when recording starts
         const at = stream.getAudioTracks?.()[0];
         if (at) at.enabled = true;
-        const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8,opus" });
+
+        // Video from camera + audio from mixed destination (mic + AI).
+        const audioTrack = audioDestRef.current?.stream.getAudioTracks?.()[0];
+        const mixed = audioTrack
+          ? new MediaStream([stream.getVideoTracks()[0], audioTrack])
+          : stream;
+
+        const recorder = new MediaRecorder(mixed, { mimeType: "video/webm;codecs=vp8,opus" });
         recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
         recorder.start(1000);
         recorderRef.current = recorder;
@@ -338,6 +362,57 @@ export default function InterviewPage() {
       return false;
     }
   }, []);
+
+  const playAiSpeech = useCallback(async (text: string, onEnd?: () => void) => {
+    if (typeof window === "undefined") return;
+    // Prefer server TTS so audio is capturable in recordings; fallback to browser speechSynthesis.
+    try {
+      if (!token) throw new Error("no token");
+
+      const r = await fetch(`${API}/public/interview/${token}/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!r.ok) throw new Error("tts failed");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+
+      if (!aiAudioRef.current) {
+        aiAudioRef.current = new Audio();
+      }
+      const el = aiAudioRef.current;
+      el.src = url;
+      el.crossOrigin = "anonymous";
+      el.volume = 1;
+
+      // Connect the element into our mixed recording graph once.
+      if (audioCtxRef.current && audioDestRef.current && !aiElementSourceRef.current) {
+        aiElementSourceRef.current = audioCtxRef.current.createMediaElementSource(el);
+        aiElementSourceRef.current.connect(audioDestRef.current);
+        aiElementSourceRef.current.connect(audioCtxRef.current.destination); // audible to user
+      }
+
+      // Ensure audio context is running (some browsers suspend until user gesture).
+      await audioCtxRef.current?.resume().catch(() => {});
+
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          el.onended = null;
+          el.onerror = null;
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        el.onended = done;
+        el.onerror = done;
+        el.play().catch(done);
+      });
+
+      onEnd?.();
+    } catch {
+      speak(text, onEnd);
+    }
+  }, [token]);
 
   /* Attach stream to video element once the live phase renders it */
   useEffect(() => {
@@ -474,7 +549,7 @@ export default function InterviewPage() {
         statusRef.current = "ai_speaking";
         capturedRef.current = "";
         setLiveCapture("");
-        speak(msg, async () => {
+        await playAiSpeech(msg, async () => {
           setStatus("idle");
           statusRef.current = "idle";
           phaseRef.current = "done";
@@ -489,7 +564,7 @@ export default function InterviewPage() {
         statusRef.current = "ai_speaking";
         capturedRef.current = "";
         setLiveCapture("");
-        speak(msg, () => {
+        await playAiSpeech(msg, () => {
           // Cooldown: keep ignoring mic for 2s after AI stops to let speaker echo die
           capturedRef.current = "";
           setLiveCapture("");
@@ -529,7 +604,7 @@ export default function InterviewPage() {
       statusRef.current = "ai_speaking";
       // Start continuous listening immediately — mic is always open
       startContinuousListening();
-      speak(msg, () => {
+      await playAiSpeech(msg, () => {
         // Cooldown: keep ignoring mic for 2s after AI stops to let speaker echo die
         capturedRef.current = "";
         setLiveCapture("");
@@ -544,7 +619,7 @@ export default function InterviewPage() {
         }, 2000);
       });
     } catch { setErrorMsg("Failed to start interview."); setPhase("error"); }
-  }, [token, startCamera, startContinuousListening]);
+  }, [token, startCamera, startContinuousListening, playAiSpeech]);
 
   const startCountdownThenBegin = useCallback(() => {
     setCountdown(10);

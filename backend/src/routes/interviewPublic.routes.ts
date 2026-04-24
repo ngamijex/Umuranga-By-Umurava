@@ -182,6 +182,52 @@ router.post("/:token/turn", async (req: Request, res: Response): Promise<void> =
   }
 });
 
+/* POST /public/interview/:token/tts — generate AI speech audio for recording */
+router.post("/:token/tts", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const session = await InterviewSession.findOne({ inviteToken: req.params.token }).select("_id windowEnd status").lean();
+    if (!session) { res.status(404).json({ success: false, error: "Link not found." }); return; }
+    if (isExpired(session as any)) { res.status(403).json({ success: false, error: "Link has expired." }); return; }
+    if (!process.env.OPENAI_API_KEY) {
+      res.status(400).json({ success: false, error: "OPENAI_API_KEY is not set on the server." });
+      return;
+    }
+
+    const text = String(req.body?.text || "").trim();
+    if (!text) { res.status(400).json({ success: false, error: "Text is required." }); return; }
+
+    const model = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
+    const voice = process.env.OPENAI_TTS_VOICE || "alloy";
+
+    const r = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        voice,
+        input: text,
+        format: "mp3",
+      }),
+    });
+
+    if (!r.ok) {
+      const errText = await r.text().catch(() => "");
+      res.status(500).json({ success: false, error: `TTS failed (${r.status}). ${errText}`.trim() });
+      return;
+    }
+
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).send(buf);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /* POST /public/interview/:token/recording — upload video blob */
 router.post("/:token/recording", recordingUpload.single("recording"), async (req: Request, res: Response): Promise<void> => {
   try {
