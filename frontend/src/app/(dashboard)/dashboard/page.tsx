@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
 import api, { publicApiBaseUrl } from "@/lib/api";
 import {
@@ -1324,6 +1324,8 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineMsg, setPipelineMsg] = useState("");
+  const [stageRunProgress, setStageRunProgress] = useState<{ processed: number; total: number; failed: number } | null>(null);
+  const runPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [unsavedHr, setUnsavedHr] = useState<Record<number, Partial<IHrInputs>>>({});
   const [stageShortlist, setStageShortlist] = useState<Record<number, string[]>>({});
@@ -2626,32 +2628,79 @@ function HireTab({ jobs }: { jobs: Job[] }) {
             } catch { alert("Failed to save HR guidance"); }
           };
 
+          const stopRunPolling = () => {
+            if (runPollingRef.current) { clearInterval(runPollingRef.current); runPollingRef.current = null; }
+          };
+
+          const finishRun = async (statusData: any, idx: number) => {
+            stopRunPolling();
+            setStageRunProgress(null);
+            // Re-fetch pipeline + results after background job finished
+            const [pipelineRes, newResults, candRes] = await Promise.all([
+              api.get(`/pipeline/${selJob!._id}`),
+              api.get(`/screening/results/${selJob!._id}`),
+              api.get(`/candidates?jobId=${selJob!._id}`),
+            ]);
+            if (pipelineRes.data.success) {
+              const freshPipeline: IPipeline = pipelineRes.data.data;
+              setPipeline(freshPipeline);
+              const shortlistIds = (freshPipeline.stages[idx]?.shortlistedIds || []).map(String);
+              setStageShortlist(prev => ({ ...prev, [idx]: shortlistIds }));
+              const tc = freshPipeline.stages[idx]?.hrInputs?.targetCount ?? 0;
+              const n = shortlistIds.length;
+              const failedNote = (statusData?.failed ?? 0) > 0 ? ` (${statusData.failed} failed — check console)` : "";
+              setPipelineMsg(
+                tc > 0
+                  ? `Done — AI pre-selected ${n} of ${statusData?.total ?? "?"} candidate(s) for shortlist (target ${tc}).${failedNote} Review & confirm.`
+                  : `Done — screened ${statusData?.processed ?? "?"}/${statusData?.total ?? "?"} candidates.${failedNote} Select your shortlist and confirm.`
+              );
+            }
+            setResults(newResults.data.data);
+            setCandidates(candRes.data.data);
+            setPipelineRunning(false);
+            setTimeout(() => setPipelineMsg(""), 8000);
+          };
+
           const runStage = async (idx: number) => {
             await saveHrInputs(idx);
-            setPipelineRunning(true); setPipelineMsg("Running AI screening for this stage…");
+            stopRunPolling();
+            setPipelineRunning(true);
+            setStageRunProgress(null);
+            setPipelineMsg("Starting AI screening…");
             try {
               const { data } = await api.post(`/pipeline/${selJob!._id}/stage/${idx}/run`);
-              if (data.success) {
-                setPipeline(data.data.pipeline);
-                const [newResults, candRes] = await Promise.all([
-                  api.get(`/screening/results/${selJob!._id}`),
-                  api.get(`/candidates?jobId=${selJob!._id}`),
-                ]);
-                setResults(newResults.data.data);
-                setCandidates(candRes.data.data);
-                // Server persists AI shortlist (target shortlist count + tier ranking); sync checkboxes
-                const shortlistIds = (data.data.pipeline?.stages[idx]?.shortlistedIds || []).map((id: string) => String(id));
-                setStageShortlist(prev => ({ ...prev, [idx]: shortlistIds }));
-                const tc = data.data.targetCount ?? data.data.pipeline?.stages[idx]?.hrInputs?.targetCount;
-                const n = data.data.aiShortlistCount ?? shortlistIds.length;
-                setPipelineMsg(
-                  tc > 0
-                    ? `Stage complete — AI pre-selected ${n} candidate(s) for shortlist (target ${tc}). Review & confirm.`
-                    : "Stage complete! Set a target shortlist count before running to auto-tick the best matches, or select manually."
-                );
+              if (!data.success) { setPipelineMsg("Error starting run."); setPipelineRunning(false); return; }
+
+              if (data.data.alreadyRunning) {
+                setPipelineMsg(`Run already in progress (${data.data.total} candidates)…`);
+              } else {
+                setStageRunProgress({ processed: 0, total: data.data.total, failed: 0 });
+                setPipelineMsg(`Screening ${data.data.total} candidates…`);
               }
-            } catch (e: any) { setPipelineMsg("Error: " + (e.response?.data?.error || e.message)); }
-            finally { setPipelineRunning(false); setTimeout(() => setPipelineMsg(""), 5000); }
+
+              // Poll /run/status every 2.5s
+              runPollingRef.current = setInterval(async () => {
+                try {
+                  const { data: s } = await api.get(`/pipeline/${selJob!._id}/stage/${idx}/run/status`);
+                  if (!s.success) return;
+                  const st = s.data;
+                  if (st.idle && st.alreadyDone) {
+                    await finishRun(null, idx);
+                    return;
+                  }
+                  if (st.idle) return;
+                  setStageRunProgress({ processed: st.processed, total: st.total, failed: st.failed });
+                  setPipelineMsg(`Screening ${st.processed}/${st.total} candidates…${st.failed > 0 ? ` (${st.failed} failed)` : ""}`);
+                  if (st.done) { await finishRun(st, idx); }
+                } catch { /* transient network error — keep polling */ }
+              }, 2500);
+
+            } catch (e: any) {
+              setPipelineMsg("Error: " + (e.response?.data?.error || e.message));
+              setPipelineRunning(false);
+              setStageRunProgress(null);
+              setTimeout(() => setPipelineMsg(""), 5000);
+            }
           };
 
           const confirmShortlist = async (idx: number) => {
@@ -2683,7 +2732,18 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                 <Layers style={{ width: "18px", height: "18px", color: "#2b72f0" }} />
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "#2b72f0", margin: 0 }}>AI Screening Playground</h3>
                 {pipelineLoading && <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} />}
-                {pipelineMsg && <span style={{ fontSize: "0.75rem", color: "#16a34a" }}>{pipelineMsg}</span>}
+                {pipelineMsg && <span style={{ fontSize: "0.75rem", color: pipelineRunning ? "#2b72f0" : "#16a34a", fontWeight: 600 }}>{pipelineMsg}</span>}
+              {stageRunProgress && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ width: 140, height: 6, borderRadius: 4, background: "#e2e8f0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 4, background: "#2b72f0", width: `${Math.round((stageRunProgress.processed / stageRunProgress.total) * 100)}%`, transition: "width 0.5s ease" }} />
+                  </div>
+                  <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>
+                    {stageRunProgress.processed}/{stageRunProgress.total}
+                    {stageRunProgress.failed > 0 && <span style={{ color: "#ef4444" }}> · {stageRunProgress.failed} failed</span>}
+                  </span>
+                </div>
+              )}
                 {rollbackMsg && !rollbackConfirmIdx && <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600 }}>{rollbackMsg}</span>}
               </div>
 

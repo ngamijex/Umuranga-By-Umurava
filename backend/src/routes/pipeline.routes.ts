@@ -24,6 +24,134 @@ import type { IPracticalAssessmentDefinition, IAssessmentResource } from "../mod
 const router = Router();
 router.use(protect);
 
+/* ── In-memory background run status ─────────────────────────────── */
+interface StageRunStatus {
+  total: number;
+  processed: number;
+  failed: number;
+  done: boolean;
+  startedAt: Date;
+  errors: Array<{ candidateId: string; name: string; error: string }>;
+  aiShortlistCount?: number;
+  targetCount?: number;
+  pipelineSnapshot?: any;
+}
+const stageRunMap = new Map<string, StageRunStatus>();
+function runKey(jobId: string, idx: number) { return `${jobId}:${idx}`; }
+
+/** Run N async tasks concurrently (worker-pool pattern, no external deps). */
+async function runConcurrent<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
+  const queue = [...items];
+  async function worker() {
+    while (queue.length > 0) {
+      const item = queue.shift()!;
+      await fn(item);
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, worker)
+  );
+}
+
+/** Fire-and-forget background screening job. */
+async function runScreeningBackground(
+  jobId: string,
+  stageIdx: number,
+  job: any,
+  stage: any,
+  candidates: any[],
+  hrContext: string,
+  candidateIds: mongoose.Types.ObjectId[]
+): Promise<void> {
+  const key = runKey(jobId, stageIdx);
+  const status: StageRunStatus = {
+    total: candidates.length,
+    processed: 0,
+    failed: 0,
+    done: false,
+    startedAt: new Date(),
+    errors: [],
+  };
+  stageRunMap.set(key, status);
+
+  const concurrency = Math.max(1, parseInt(process.env.LLM_CONCURRENCY || "5", 10));
+  const results: any[] = [];
+
+  await runConcurrent(candidates, concurrency, async (candidate) => {
+    try {
+      const result = await screenCandidate(job, candidate, hrContext, stage.type);
+      const s = await ScreeningResult.findOneAndUpdate(
+        { jobId, candidateId: candidate._id },
+        { ...result, jobId, candidateId: candidate._id },
+        { upsert: true, new: true }
+      );
+      await Candidate.findByIdAndUpdate(candidate._id, { status: "screened" });
+      results.push(s);
+    } catch (e: any) {
+      status.failed++;
+      status.errors.push({
+        candidateId: String(candidate._id),
+        name: `${candidate.firstName} ${candidate.lastName}`,
+        error: e.message,
+      });
+      console.error(`[Pipeline] Error screening ${candidate._id}:`, e.message);
+    } finally {
+      status.processed++;
+      stageRunMap.set(key, { ...status });
+    }
+  });
+
+  /* Rank, shortlist, save, emails */
+  try {
+    const sorted = results.sort((a: any, b: any) => b.overallScore - a.overallScore);
+    for (let i = 0; i < sorted.length; i++) {
+      await ScreeningResult.findByIdAndUpdate(sorted[i]._id, { rank: i + 1 });
+    }
+
+    const pipeline = await Pipeline.findOne({ jobId });
+    if (pipeline) {
+      const targetCount = Math.max(0, Math.floor(Number(pipeline.stages[stageIdx].hrInputs?.targetCount) || 0));
+      const aiShortlist = pickAiShortlistIds(
+        sorted.map((s: any) => ({
+          candidateId: s.candidateId,
+          recommendation: String(s.recommendation),
+          overallScore: Number(s.overallScore) || 0,
+        })),
+        targetCount
+      );
+      pipeline.stages[stageIdx].shortlistedIds = aiShortlist;
+      pipeline.stages[stageIdx].status = "done";
+      pipeline.stages[stageIdx].ranAt = new Date();
+      await pipeline.save();
+
+      await applyStageShortlistOutcomes(
+        jobId,
+        stageIdx,
+        stage.name,
+        candidateIds,
+        aiShortlist
+      );
+
+      const pipelineFresh = (await Pipeline.findOne({ jobId })) || pipeline;
+      status.aiShortlistCount = aiShortlist.length;
+      status.targetCount = targetCount;
+      status.pipelineSnapshot = pipelineFresh;
+    }
+  } catch (e: any) {
+    console.error("[Pipeline] Background finalization error:", e.message);
+  }
+
+  status.done = true;
+  stageRunMap.set(key, { ...status });
+
+  // Auto-clean from memory after 15 minutes
+  setTimeout(() => stageRunMap.delete(key), 15 * 60 * 1000);
+}
+
 /**
  * Picks up to `targetCount` candidates for the next pipeline step: tiers strong_yes → yes → maybe
  * (highest overallScore first within each tier). Never auto-selects `no`.
@@ -160,27 +288,36 @@ router.patch("/:jobId/stage/:idx/hr-inputs", async (req: AuthRequest, res: Respo
   }
 });
 
-/* POST /pipeline/:jobId/stage/:idx/run  — run AI screening for a stage */
+/* POST /pipeline/:jobId/stage/:idx/run  — start AI screening (background, non-blocking) */
 router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
-    if (!pipeline) { res.status(404).json({ success: false, error: "Pipeline not found" }); return; }
+    const { jobId } = req.params;
     const idx = parseInt(req.params.idx);
+
+    const pipeline = await Pipeline.findOne({ jobId });
+    if (!pipeline) { res.status(404).json({ success: false, error: "Pipeline not found" }); return; }
     if (isNaN(idx) || idx < 0 || idx >= pipeline.stages.length) {
       res.status(400).json({ success: false, error: "Invalid stage index" }); return;
     }
-    const job = await Job.findById(req.params.jobId);
+    const job = await Job.findById(jobId);
     if (!job) { res.status(404).json({ success: false, error: "Job not found" }); return; }
+
+    // Prevent duplicate runs
+    const key = runKey(jobId, idx);
+    const existing = stageRunMap.get(key);
+    if (existing && !existing.done) {
+      res.json({ success: true, data: { alreadyRunning: true, total: existing.total } });
+      return;
+    }
 
     const stage = pipeline.stages[idx];
 
-    /* Determine which candidates to screen */
-    let candidateIds: any[];
+    let candidateIds: mongoose.Types.ObjectId[];
     if (idx === 0) {
-      const all = await Candidate.find({ jobId: req.params.jobId }).select("_id");
-      candidateIds = all.map(c => c._id);
+      const all = await Candidate.find({ jobId }).select("_id");
+      candidateIds = all.map(c => c._id as mongoose.Types.ObjectId);
     } else {
-      candidateIds = pipeline.stages[idx - 1].shortlistedIds;
+      candidateIds = pipeline.stages[idx - 1].shortlistedIds as mongoose.Types.ObjectId[];
     }
     if (!candidateIds.length) {
       res.status(400).json({ success: false, error: "No candidates to screen at this stage" }); return;
@@ -188,85 +325,44 @@ router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): P
 
     pipeline.stages[idx].candidateIds = candidateIds;
     pipeline.stages[idx].status = "running";
+    pipeline.markModified("stages");
     await pipeline.save();
 
-    /* HR context for this stage (same builder as standalone screening uses for stage 0) */
-    const hrContext = await buildHrContextStringForJob(req.params.jobId, idx);
-
+    const hrContext = await buildHrContextStringForJob(jobId, idx);
     const candidates = await Candidate.find({ _id: { $in: candidateIds } });
-    const results: any[] = [];
-    const errors: any[] = [];
 
-    for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i];
-      try {
-        const gap = getMsBetweenCandidates();
-        if (gap > 0 && i > 0) {
-          await sleep(gap);
-        }
-        console.log(`[Pipeline] Screening candidate ${candidate._id} (${candidate.firstName} ${candidate.lastName}) for stage ${stage.name}`);
-        const result = await screenCandidate(job, candidate, hrContext, stage.type);
-        console.log(`[Pipeline] Got result for ${candidate._id}: score=${result.overallScore}, rec=${result.recommendation}`);
-        const s = await ScreeningResult.findOneAndUpdate(
-          { jobId: req.params.jobId, candidateId: candidate._id },
-          { ...result, jobId: req.params.jobId, candidateId: candidate._id },
-          { upsert: true, new: true }
-        );
-        console.log(`[Pipeline] Saved screening result ${s._id} for candidate ${candidate._id}`);
-        await Candidate.findByIdAndUpdate(candidate._id, { status: "screened" });
-        results.push(s);
-      } catch (e: any) {
-        console.error(`[Pipeline] Error screening candidate ${candidate._id}:`, e.message);
-        errors.push({ candidateId: candidate._id, error: e.message });
-      }
-    }
-
-    /* Rank results */
-    const sorted = results.sort((a, b) => b.overallScore - a.overallScore);
-    for (let i = 0; i < sorted.length; i++) {
-      await ScreeningResult.findByIdAndUpdate(sorted[i]._id, { rank: i + 1 });
-    }
-
-    const targetCount = Math.max(0, Math.floor(Number(stage.hrInputs?.targetCount) || 0));
-    const aiShortlist = pickAiShortlistIds(
-      sorted.map(s => ({
-        candidateId: s.candidateId,
-        recommendation: String(s.recommendation),
-        overallScore: Number(s.overallScore) || 0,
-      })),
-      targetCount
-    );
-
-    pipeline.stages[idx].shortlistedIds = aiShortlist;
-    pipeline.stages[idx].status = "done";
-    pipeline.stages[idx].ranAt = new Date();
-    await pipeline.save();
-
-    await applyStageShortlistOutcomes(
-      req.params.jobId,
-      idx,
-      stage.name,
-      candidateIds.map(id => new mongoose.Types.ObjectId(String(id))),
-      aiShortlist
-    );
-
-    const pipelineFresh = (await Pipeline.findOne({ jobId: req.params.jobId })) || pipeline;
-
+    // Respond immediately — background job processes candidates concurrently
     res.json({
       success: true,
-      data: {
-        screened: results.length,
-        errors,
-        total: candidateIds.length,
-        aiShortlistCount: aiShortlist.length,
-        targetCount,
-        pipeline: pipelineFresh,
-      },
+      data: { started: true, total: candidates.length },
     });
+
+    // Fire-and-forget: process in background without blocking this request
+    runScreeningBackground(jobId, idx, job, stage, candidates, hrContext, candidateIds).catch(
+      (e: any) => console.error("[Pipeline] Fatal background run error:", e.message)
+    );
   } catch (err: any) {
     console.error("[Pipeline] Run stage error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+/* GET /pipeline/:jobId/stage/:idx/run/status  — poll background screening progress */
+router.get("/:jobId/stage/:idx/run/status", async (req: AuthRequest, res: Response): Promise<void> => {
+  const key = runKey(req.params.jobId, parseInt(req.params.idx));
+  const status = stageRunMap.get(key);
+  if (!status) {
+    // Check if the stage is already done in DB (run completed before this poll started)
+    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
+    const idx = parseInt(req.params.idx);
+    if (pipeline && pipeline.stages[idx]?.status === "done") {
+      res.json({ success: true, data: { idle: true, alreadyDone: true } });
+    } else {
+      res.json({ success: true, data: { idle: true } });
+    }
+    return;
+  }
+  res.json({ success: true, data: status });
 });
 
 /* POST /pipeline/:jobId/stage/:idx/shortlist  — confirm shortlist and unlock next stage */
