@@ -68,8 +68,7 @@ function getModelCandidates(primaryEnvVar = "GEMINI_MODEL"): string[] {
         .filter(Boolean)
         .map((m) => (m.startsWith("models/") ? m : `models/${m}`))
     : [
-        "models/gemini-2.0-flash",        // fast, widely available fallback
-        "models/gemini-2.5-pro",          // quality fallback when flash is under demand
+        "models/gemini-2.5-pro",          // fallback when gemini-2.5-flash is under demand
       ];
 
   return [primary, ...fallbacks.filter((m) => m !== primary)];
