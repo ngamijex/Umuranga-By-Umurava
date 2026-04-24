@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 /* ── Nav tabs — 3 only ─────────────────────────────────── */
 const navTabs = [
   { label: "About",    href: "#about",      desc: "Overview & Purpose",    primary: false },
-  { label: "Hire",     href: "/login",      desc: "Hiring Playground",     primary: true  },
+  { label: "Hire",     href: "/dashboard",  desc: "Hiring Playground",     primary: true  },
   { label: "Insights", href: "#insights",   desc: "Analytics & Reports",   primary: false },
 ];
 
@@ -100,7 +100,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3 shrink-0">
             {/* Login — solid white pill, blue text */}
             <Link
-              href="/login"
+              href="/dashboard"
               className="text-sm font-medium px-6 py-3 rounded-full transition-all"
               style={{ backgroundColor: "#FFFFFF", color: "var(--color-primary)" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#f0f4ff"; }}
@@ -110,7 +110,7 @@ export default function Navbar() {
             </Link>
             {/* Hire Now — frosted blue pill, white text */}
             <Link
-              href="/login"
+              href="/dashboard"
               className="text-sm font-medium px-6 py-3 rounded-full transition-all"
               style={{
                 backgroundColor: "rgba(255,255,255,0.22)",
@@ -167,7 +167,7 @@ export default function Navbar() {
               style={{ borderTop: "1px solid var(--border-light)" }}
             >
               <Link
-                href="/login"
+                href="/dashboard"
                 onClick={() => setIsOpen(false)}
                 className="text-center py-2.5 px-4 rounded-full font-semibold text-sm transition-all"
                 style={{
@@ -178,7 +178,7 @@ export default function Navbar() {
                 Login
               </Link>
               <Link
-                href="/login"
+                href="/dashboard"
                 onClick={() => setIsOpen(false)}
                 className="text-center py-2.5 px-4 rounded-full font-semibold text-sm"
                 style={{ backgroundColor: "var(--color-primary)", color: "#FFFFFF" }}

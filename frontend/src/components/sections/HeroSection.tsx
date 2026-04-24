@@ -76,7 +76,7 @@ export default function HeroSection() {
           {/* CTAs */}
           <div className="flex flex-wrap justify-center gap-4 mb-0">
             <Link
-              href="/login"
+              href="/dashboard"
               className="inline-flex items-center gap-2 bg-white text-sm font-medium px-6 py-3 rounded-full hover:bg-blue-50 transition-all duration-200"
               style={{ color: "var(--color-primary)" }}
             >
