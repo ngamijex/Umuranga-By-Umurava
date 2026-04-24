@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import fs from "fs/promises";
 import path from "path";
 import pdfParse from "pdf-parse";
-import { openaiChatText } from "../config/openai";
+import { geminiChatText } from "../config/gemini";
 import { Job } from "../models/Job.model";
 import { Candidate } from "../models/Candidate.model";
 import { PracticalSubmission, IPracticalSubmission } from "../models/PracticalSubmission.model";
@@ -80,7 +80,7 @@ ${body}
 Return ONLY valid JSON:
 { "score": <number 0-100>, "feedback": "<2-4 sentences: strengths, gaps, and whether they demonstrated role-relevant skills>" }`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3 });
   let parsed: { score?: number; feedback?: string };
   try {
     parsed = JSON.parse(stripJsonFence(raw));
@@ -133,7 +133,7 @@ Return ONLY valid JSON:
 
 Include every candidate exactly once. Ranks must be 1..${subs.length} with no duplicates.`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3 });
   let parsed: { ranking?: Array<{ candidateId?: string; rank?: number; note?: string }> };
   try {
     parsed = JSON.parse(stripJsonFence(raw));

@@ -1,7 +1,7 @@
 import { IJob } from "../models/Job.model";
 import { ICandidate, IWorkExperience } from "../models/Candidate.model";
 import type { IHrInputsAssessment, IJobRequirementComparisonRow } from "../models/ScreeningResult.model";
-import { openaiChatText } from "../config/openai";
+import { geminiChatText } from "../config/gemini";
 import { buildHrContextStringForJob } from "./pipelineHrContext.service";
 
 export interface ScreeningOutput {
@@ -198,18 +198,16 @@ export const screenCandidate = async (
   const prompt = buildPrompt(job, candidate, combinedHr, stageType);
 
   try {
-    const text = await openaiChatText(prompt);
+    const text = await geminiChatText(prompt);
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error("OpenAI returned an unexpected format — no JSON found.");
+      throw new Error("Gemini returned an unexpected format — no JSON found.");
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
     return normalizeScreeningOutput(parsed);
   } catch (error: any) {
-    console.error("[screenCandidate] OpenAI API full error:", JSON.stringify(error.response?.data, null, 2) || error.message);
-    console.error("[screenCandidate] URL used:", `https://api.openai.com/v1/chat/completions`);
-    console.error("[screenCandidate] Status:", error.response?.status);
-    throw new Error(`OpenAI API error: ${error.response?.data?.error?.message || error.message}`);
+    console.error("[screenCandidate] Gemini error:", error?.message || String(error));
+    throw new Error(`Gemini API error: ${error?.message || String(error)}`);
   }
 };

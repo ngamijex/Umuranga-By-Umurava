@@ -1,4 +1,4 @@
-import { openaiChatText } from "../config/openai";
+import { geminiChatText } from "../config/gemini";
 import type { IJob } from "../models/Job.model";
 import type { IInterviewTurn, IInterviewScore } from "../models/InterviewSession.model";
 
@@ -105,7 +105,7 @@ Examples of good topics:
 Return ONLY a JSON array of topic strings (no markdown fence):
 ["topic 1", "topic 2", ...]`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 2 });
+  const raw = await geminiChatText(prompt, { maxRetries: 2 });
   try {
     const parsed = JSON.parse(stripJsonFence(raw));
     if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String);
@@ -179,7 +179,7 @@ Return ONLY valid JSON (no markdown fence):
   "isComplete": <true only if wrapping up, false otherwise>
 }`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 2 });
+  const raw = await geminiChatText(prompt, { maxRetries: 2 });
   try {
     const parsed = JSON.parse(stripJsonFence(raw));
     return {
@@ -240,7 +240,7 @@ Return ONLY valid JSON (no markdown fence):
   "improvements": ["<area 1>", "<area 2>"]
 }`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 2 });
+  const raw = await geminiChatText(prompt, { maxRetries: 2 });
   try {
     const p = JSON.parse(stripJsonFence(raw));
     const clamp = (n: unknown) => Math.min(100, Math.max(0, Number(n) || 0));
@@ -284,7 +284,7 @@ Requirements:
 - Return ONLY the spoken text — no quotes, no formatting, no JSON`;
 
   try {
-    const text = await openaiChatText(prompt, { maxRetries: 2 });
+    const text = await geminiChatText(prompt, { maxRetries: 2 });
     if (text && text.trim().length > 10) {
       console.log("[interview] AI opening message generated successfully");
       return text.trim();

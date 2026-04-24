@@ -7,7 +7,7 @@ import { Candidate } from "../models/Candidate.model";
 import { InterviewSession } from "../models/InterviewSession.model";
 import { ScreeningResult } from "../models/ScreeningResult.model";
 import { PracticalSubmission } from "../models/PracticalSubmission.model";
-import { openaiChatText } from "../config/openai";
+import { geminiChatText } from "../config/gemini";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
@@ -126,7 +126,7 @@ function sanitizeBulkCandidate(raw: unknown, jobId: string): Record<string, unkn
   };
 }
 
-async function parseCVWithOpenAI(resumeText: string): Promise<any> {
+async function parseCVWithGemini(resumeText: string): Promise<any> {
   const prompt = `You are an expert HR data extractor. Given the CV/resume text below, extract the candidate's full talent profile.
 Return ONLY a valid JSON object — no markdown fences, no explanation outside the JSON.
 If a field cannot be determined, use an empty string, empty array, or sensible default.
@@ -164,9 +164,9 @@ Required Output Format (JSON only — follow this structure exactly):
   "socialLinks": { "linkedin": "", "github": "", "portfolio": "" }
 }`;
 
-  const text = await openaiChatText(prompt);
+  const text = await geminiChatText(prompt);
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("OpenAI returned no JSON");
+  if (!jsonMatch) throw new Error("Gemini returned no JSON");
   return JSON.parse(jsonMatch[0]);
 }
 
@@ -285,7 +285,7 @@ router.delete("/:id", async (req: AuthRequest, res: Response): Promise<void> => 
   }
 });
 
-/* ── ZIP / PDF bulk ingestion with OpenAI CV parsing ── */
+/* ── ZIP / PDF bulk ingestion with Gemini CV parsing ── */
 router.post("/upload-zip", upload.single("zipFile"), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { jobId } = req.body;
@@ -309,7 +309,7 @@ router.post("/upload-zip", upload.single("zipFile"), async (req: AuthRequest, re
         const pdfBuffer = entry.getData();
         const parsed = await pdfParse(pdfBuffer);
         const resumeText = parsed.text || "";
-        const cvData = await parseCVWithOpenAI(resumeText);
+        const cvData = await parseCVWithGemini(resumeText);
         const doc = sanitizeBulkCandidate(
           { ...cvData, resumeText: resumeText.slice(0, 6000) },
           jobId

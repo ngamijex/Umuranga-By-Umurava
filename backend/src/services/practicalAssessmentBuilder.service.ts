@@ -1,4 +1,4 @@
-import { openaiChatText } from "../config/openai";
+import { geminiChatText } from "../config/gemini";
 import type { IJob } from "../models/Job.model";
 import type { IPracticalAssessmentDefinition, IAssessmentResource } from "../models/assessmentDefinition";
 
@@ -184,7 +184,7 @@ Return ONLY valid JSON (no markdown fence):
 }`;
   })();
 
-  const raw = await openaiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3 });
   let parsed: IPracticalAssessmentDefinition;
   try {
     parsed = JSON.parse(stripJsonFence(raw));
@@ -253,7 +253,7 @@ Return ONLY valid JSON — no markdown fence, no explanation:
   }
 ]`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 2 });
+  const raw = await geminiChatText(prompt, { maxRetries: 2 });
   let parsed: Array<{
     filename: string;
     description: string;

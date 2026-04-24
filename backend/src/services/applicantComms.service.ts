@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { openaiChatText } from "../config/openai";
+import { geminiChatText } from "../config/gemini";
 import type { IApplicantComms, IPipelineStage } from "../models/Pipeline.model";
 import type { IJob } from "../models/Job.model";
 import type { ICandidate } from "../models/Candidate.model";
@@ -120,7 +120,7 @@ Return ONLY valid JSON (no markdown):
   ]
 }`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3 });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
     parsed = JSON.parse(stripJsonFence(raw));
@@ -218,7 +218,7 @@ Return ONLY valid JSON:
 
 kind always "advance". Body 130–220 words.`;
 
-  const raw = await openaiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3 });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
     parsed = JSON.parse(stripJsonFence(raw));
