@@ -179,7 +179,9 @@ Return ONLY valid JSON (no markdown fence):
   "isComplete": <true only if wrapping up, false otherwise>
 }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 2 });
+  // Keep tokens tight — response is only 2-3 sentences, so 300 tokens is plenty.
+  // This significantly reduces Gemini response latency.
+  const raw = await geminiChatText(prompt, { maxRetries: 2, maxOutputTokens: 300, temperature: 0.4 });
   try {
     const parsed = JSON.parse(stripJsonFence(raw));
     return {
@@ -284,7 +286,7 @@ Requirements:
 - Return ONLY the spoken text — no quotes, no formatting, no JSON`;
 
   try {
-    const text = await geminiChatText(prompt, { maxRetries: 2 });
+    const text = await geminiChatText(prompt, { maxRetries: 2, maxOutputTokens: 200, temperature: 0.6 });
     if (text && text.trim().length > 10) {
       console.log("[interview] AI opening message generated successfully");
       return text.trim();

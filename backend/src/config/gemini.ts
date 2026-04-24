@@ -69,7 +69,7 @@ function getModelCandidates(): string[] {
  */
 export async function geminiChatText(
   prompt: string,
-  opts?: { maxRetries?: number }
+  opts?: { maxRetries?: number; maxOutputTokens?: number; temperature?: number }
 ): Promise<string> {
   const maxRetries = opts?.maxRetries ?? 5;
   const modelCandidates = getModelCandidates();
@@ -86,8 +86,8 @@ export async function geminiChatText(
       const model = genAI.getGenerativeModel({
         model: modelName,
         generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 8192,
+          temperature: opts?.temperature ?? 0.2,
+          maxOutputTokens: opts?.maxOutputTokens ?? 8192,
         },
       });
       const result = await model.generateContent(prompt);

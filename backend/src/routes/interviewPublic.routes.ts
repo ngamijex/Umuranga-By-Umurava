@@ -228,6 +228,38 @@ router.post("/:token/tts", async (req: Request, res: Response): Promise<void> =>
   }
 });
 
+/* POST /public/interview/:token/complete — mark session completed when candidate ends call early */
+router.post("/:token/complete", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const session = await InterviewSession.findOne({ inviteToken: req.params.token });
+    if (!session) { res.status(404).json({ success: false, error: "Link not found." }); return; }
+    if (session.status === "completed") { res.json({ success: true, message: "Already completed." }); return; }
+
+    session.status = "completed";
+    session.completedAt = new Date();
+    await session.save();
+
+    // Async background grading if there's enough transcript to evaluate
+    const candidateTurns = session.transcript.filter((t: { speaker: string }) => t.speaker === "candidate");
+    if (candidateTurns.length >= 2 && !session.score) {
+      const [job, candidateDoc] = await Promise.all([
+        Job.findById(session.jobId),
+        Candidate.findById(session.candidateId).lean(),
+      ]);
+      if (job) {
+        const candProfile = candidateDoc ? toCandidateProfile(candidateDoc) : undefined;
+        gradeInterview(job, session.transcript, candProfile)
+          .then(score => InterviewSession.findByIdAndUpdate(session._id, { score }))
+          .catch((e: any) => console.error("[interview] manual-end grading failed:", e?.message));
+      }
+    }
+
+    res.json({ success: true, message: "Interview marked as completed." });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /* POST /public/interview/:token/recording — upload video blob */
 router.post("/:token/recording", recordingUpload.single("recording"), async (req: Request, res: Response): Promise<void> => {
   try {

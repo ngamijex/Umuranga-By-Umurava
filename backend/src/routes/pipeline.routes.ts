@@ -18,6 +18,7 @@ import { sendApplicantEmail, isEmailConfigured } from "../services/email.service
 import { gradeAllPending, gradeSubmission, compareAndRankSubmissions } from "../services/practicalAssessment.service";
 import { aiGeneratePracticalAssessment, aiGenerateDatasets } from "../services/practicalAssessmentBuilder.service";
 import { generateInterviewQuestions } from "../services/interview.service";
+import { geminiChatText } from "../config/gemini";
 import type { IPracticalAssessmentDefinition, IAssessmentResource } from "../models/assessmentDefinition";
 
 const router = Router();
@@ -1137,6 +1138,177 @@ router.post("/:jobId/stage/:idx/interview/shortlist", async (req: AuthRequest, r
     await pipeline.save();
     res.json({ success: true, data: pipeline });
   } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ══════════════════════════════════════════════════════════
+   FINAL SELECTION — AI synthesises all pipeline stages for a candidate pool
+   ══════════════════════════════════════════════════════════ */
+
+/**
+ * POST /pipeline/:jobId/final-selection
+ * Body: { candidateIds?: string[] }  — if omitted, uses all shortlisted from last done stage
+ *
+ * For each candidate, gathers:
+ *  - CV screening score / explanation
+ *  - Deep review score
+ *  - Practical assessment score + feedback
+ *  - AI interview score + feedback
+ * Then asks Gemini to synthesise a final recommendation with an overall conclusion.
+ */
+router.post("/:jobId/final-selection", async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { jobId } = req.params;
+    const pipeline = await Pipeline.findOne({ jobId });
+    const job = await Job.findById(jobId);
+    if (!pipeline || !job) { res.status(404).json({ success: false, error: "Pipeline or job not found." }); return; }
+
+    // Determine candidate pool — explicit list or last done stage's shortlisted
+    let candidateIds: mongoose.Types.ObjectId[] = [];
+    if (Array.isArray(req.body?.candidateIds) && req.body.candidateIds.length > 0) {
+      candidateIds = req.body.candidateIds.map((id: string) => new mongoose.Types.ObjectId(id));
+    } else {
+      // Walk backward to find last stage with shortlisted candidates
+      const doneStages = pipeline.stages.filter(s => s.status === "done" && (s.shortlistedIds?.length || 0) > 0);
+      const lastDone = doneStages[doneStages.length - 1];
+      candidateIds = (lastDone?.shortlistedIds as mongoose.Types.ObjectId[]) || [];
+    }
+
+    if (candidateIds.length === 0) {
+      res.status(400).json({ success: false, error: "No candidates in the pool. Complete at least one pipeline stage first." });
+      return;
+    }
+
+    const results: Array<{
+      candidateId: string;
+      candidateName: string;
+      email: string;
+      stagesData: string;
+      finalScore: number;
+      recommendation: string;
+      conclusion: string;
+      strengths: string[];
+      concerns: string[];
+      hiringDecision: "hire" | "maybe" | "pass";
+    }> = [];
+
+    for (const cid of candidateIds) {
+      const candidate = await Candidate.findById(cid).lean();
+      if (!candidate) continue;
+      const candName = `${(candidate as any).firstName || ""} ${(candidate as any).lastName || ""}`.trim();
+      const candEmail = (candidate as any).email || "";
+
+      // Gather all stage data
+      const stageSummaries: string[] = [];
+
+      // CV screening / deep review results
+      const screenResult = await ScreeningResult.findOne({ jobId, candidateId: cid }).lean();
+      if (screenResult) {
+        stageSummaries.push(
+          `CV/Deep Screening:\n  Overall score: ${(screenResult as any).overallScore}/100\n  Recommendation: ${(screenResult as any).recommendation}\n  Strengths: ${((screenResult as any).strengths || []).join(", ")}\n  Gaps: ${((screenResult as any).gaps || []).join(", ")}\n  Explanation: ${String((screenResult as any).aiExplanation || "").slice(0, 600)}`
+        );
+      }
+
+      // Practical assessment
+      const practical = await PracticalSubmission.findOne({ jobId, candidateId: cid, score: { $exists: true, $ne: null } })
+        .sort({ createdAt: -1 }).lean();
+      if (practical) {
+        stageSummaries.push(
+          `Practical Assessment:\n  Score: ${(practical as any).score}/100\n  Feedback: ${String((practical as any).feedback || "").slice(0, 600)}\n  Rank (within cohort): ${(practical as any).compareRank || "N/A"}`
+        );
+      }
+
+      // AI interview
+      const interview = await InterviewSession.findOne({ jobId, candidateId: cid, status: "completed" })
+        .sort({ completedAt: -1 }).lean();
+      if (interview) {
+        const sc = (interview as any).score;
+        if (sc) {
+          stageSummaries.push(
+            `AI Video Interview:\n  Overall: ${sc.overall}/100 | Confidence: ${sc.confidence} | Communication: ${sc.communication} | Accuracy: ${sc.accuracy} | Attitude: ${sc.attitude}\n  Feedback: ${String(sc.feedback || "").slice(0, 600)}\n  Strengths: ${(sc.strengths || []).join(", ")}\n  Improvements: ${(sc.improvements || []).join(", ")}`
+          );
+        } else {
+          stageSummaries.push(`AI Video Interview: Completed (score not yet available)`);
+        }
+      }
+
+      if (stageSummaries.length === 0) {
+        results.push({
+          candidateId: String(cid),
+          candidateName: candName,
+          email: candEmail,
+          stagesData: "No stage data available",
+          finalScore: 0,
+          recommendation: "Insufficient data",
+          conclusion: "This candidate has no recorded stage data to evaluate.",
+          strengths: [],
+          concerns: ["No data from pipeline stages"],
+          hiringDecision: "pass",
+        });
+        continue;
+      }
+
+      const stagesData = stageSummaries.join("\n\n");
+      const prompt = `You are a senior hiring manager making the final hiring decision for: ${job.title} (${(job as any).department || "N/A"}).
+
+Required skills: ${((job as any).requiredSkills || []).join(", ")}
+Experience required: ${(job as any).experienceYears || 0}+ years
+
+Candidate: ${candName}
+
+Performance across all hiring pipeline stages:
+${stagesData}
+
+Synthesise ALL the above data holistically. This is the final decision — consider the complete picture.
+
+Return ONLY valid JSON:
+{
+  "finalScore": <number 0-100 — weighted holistic score across all stages>,
+  "recommendation": "<one clear sentence summarising the candidate's suitability>",
+  "conclusion": "<2-3 sentences: holistic synthesis — what stands out across ALL stages, patterns noticed, why they should/should not be hired>",
+  "strengths": ["<key strength 1>", "<key strength 2>", "<key strength 3>"],
+  "concerns": ["<concern 1>", "<concern 2>"],
+  "hiringDecision": "hire"|"maybe"|"pass"
+}`;
+
+      try {
+        const raw = await geminiChatText(prompt, { maxRetries: 2, maxOutputTokens: 800 });
+        const parsed = JSON.parse(raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim());
+        results.push({
+          candidateId: String(cid),
+          candidateName: candName,
+          email: candEmail,
+          stagesData,
+          finalScore: Math.max(0, Math.min(100, Number(parsed.finalScore) || 0)),
+          recommendation: String(parsed.recommendation || ""),
+          conclusion: String(parsed.conclusion || ""),
+          strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
+          concerns: Array.isArray(parsed.concerns) ? parsed.concerns.map(String) : [],
+          hiringDecision: ["hire", "maybe", "pass"].includes(parsed.hiringDecision) ? parsed.hiringDecision : "maybe",
+        });
+      } catch {
+        results.push({
+          candidateId: String(cid),
+          candidateName: candName,
+          email: candEmail,
+          stagesData,
+          finalScore: 0,
+          recommendation: "AI synthesis failed — review manually.",
+          conclusion: "Could not generate AI conclusion for this candidate.",
+          strengths: [],
+          concerns: ["AI synthesis error"],
+          hiringDecision: "maybe",
+        });
+      }
+    }
+
+    // Sort by finalScore descending
+    results.sort((a, b) => b.finalScore - a.finalScore);
+
+    res.json({ success: true, data: { results, total: results.length } });
+  } catch (err: any) {
+    console.error("[pipeline] final-selection:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

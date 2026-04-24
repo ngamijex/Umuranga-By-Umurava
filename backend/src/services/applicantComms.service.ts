@@ -120,7 +120,7 @@ Return ONLY valid JSON (no markdown):
   ]
 }`;
 
-  const raw = await geminiChatText(prompt, { maxRetries: 3 });
+  const raw = await geminiChatText(prompt, { maxRetries: 3, maxOutputTokens: 3000 });
   let parsed: { messages?: Array<{ candidateId?: string; kind?: string; subject?: string; body?: string }> };
   try {
     parsed = JSON.parse(stripJsonFence(raw));

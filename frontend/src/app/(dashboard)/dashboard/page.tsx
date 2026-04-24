@@ -1358,6 +1358,12 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [assessmentGenBusy, setAssessmentGenBusy] = useState(false);
   const [videoModal, setVideoModal] = useState<{ url: string; name: string; transcript: any[] } | null>(null);
 
+  /* Final selection state */
+  const [finalSelResults, setFinalSelResults] = useState<any[]>([]);
+  const [finalSelLoading, setFinalSelLoading] = useState(false);
+  const [finalSelMsg, setFinalSelMsg] = useState("");
+  const [finalSelExpanded, setFinalSelExpanded] = useState<string | null>(null);
+
   /* Rollback state */
   const [rollbackConfirmIdx, setRollbackConfirmIdx] = useState<number | null>(null);
   const [rollbackBusy, setRollbackBusy] = useState(false);
@@ -1629,6 +1635,24 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     } catch (e: any) { alert(e.response?.data?.error || e.message); }
     finally { setGradingSubId(null); }
   }, [selJob, pipeline, screeningViewIdx]);
+
+  const runFinalSelection = useCallback(async () => {
+    if (!selJob) return;
+    setFinalSelLoading(true);
+    setFinalSelMsg("");
+    try {
+      const { data } = await api.post(`/pipeline/${selJob._id}/final-selection`);
+      if (data.success) {
+        setFinalSelResults(data.data.results || []);
+        setFinalSelMsg(`AI synthesised ${data.data.total} candidate(s) across all pipeline stages.`);
+        setTimeout(() => setFinalSelMsg(""), 6000);
+      }
+    } catch (e: any) {
+      alert(e.response?.data?.error || e.message);
+    } finally {
+      setFinalSelLoading(false);
+    }
+  }, [selJob]);
 
   const confirmPracticalShortlist = useCallback(async () => {
     if (!selJob || !pipeline || practicalPickIds.size === 0) return;
@@ -3463,7 +3487,80 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     </div>
                   )}
 
-                  {activeStage.status === "done" && sortedStageResults.length === 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && (
+                  {/* ── Final stage (Final Selection) ── */}
+                  {activeStage.type === "final" && (
+                    <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "12px 14px", borderRadius: "8px", background: "#faf5ff", border: "1px solid #e9d5ff" }}>
+                        <Sparkles style={{ width: "14px", height: "14px", color: "#7c3aed", flexShrink: 0, marginTop: "2px" }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: "0 0 4px", fontSize: "0.78rem", fontWeight: 700, color: "#4c1d95" }}>Final AI Selection</p>
+                          <p style={{ margin: 0, fontSize: "0.72rem", color: "#7c3aed", lineHeight: 1.5 }}>
+                            The AI synthesises every screening stage — CV review, deep review, practical assessment, and AI interview — to produce a holistic final verdict for each candidate.
+                          </p>
+                        </div>
+                        <button onClick={runFinalSelection} disabled={finalSelLoading} style={{ padding: "6px 14px", borderRadius: "6px", background: finalSelLoading ? "#94a3b8" : "#7c3aed", color: "#fff", border: "none", fontSize: "0.72rem", fontWeight: 700, cursor: finalSelLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          {finalSelLoading ? <><Loader2 style={{ width: "12px", height: "12px", animation: "spin 1s linear infinite" }} /> Analysing…</> : <><Sparkles style={{ width: "12px", height: "12px" }} /> Run Final Selection</>}
+                        </button>
+                      </div>
+
+                      {finalSelMsg && <p style={{ margin: 0, fontSize: "0.72rem", color: "#7c3aed", fontWeight: 600 }}>{finalSelMsg}</p>}
+
+                      {finalSelResults.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {finalSelResults.map((r: any) => {
+                            const isExp = finalSelExpanded === r.candidateId;
+                            const decisionStyle: Record<string, { bg: string; color: string; label: string }> = {
+                              hire: { bg: "#dcfce7", color: "#16a34a", label: "Hire" },
+                              maybe: { bg: "#fef9c3", color: "#a16207", label: "Maybe" },
+                              pass: { bg: "#fee2e2", color: "#dc2626", label: "Pass" },
+                            };
+                            const ds = decisionStyle[r.hiringDecision] || decisionStyle.maybe;
+                            return (
+                              <div key={r.candidateId} style={{ border: "1px solid #e9d5ff", borderRadius: "10px", overflow: "hidden", background: "#fff" }}>
+                                <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setFinalSelExpanded(isExp ? null : r.candidateId)}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.82rem", color: "#0f172a" }}>{r.candidateName || "Candidate"}</p>
+                                    <p style={{ margin: 0, fontSize: "0.7rem", color: "#64748b" }}>{r.email}</p>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <span style={{ fontSize: "0.78rem", fontWeight: 800, color: r.finalScore >= 75 ? "#22c55e" : r.finalScore >= 55 ? "#f59e0b" : "#ef4444" }}>{r.finalScore}/100</span>
+                                    <span style={{ padding: "2px 8px", borderRadius: "10px", fontSize: "0.65rem", fontWeight: 700, background: ds.bg, color: ds.color }}>{ds.label}</span>
+                                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2} style={{ transform: isExp ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}><polyline points="6 9 12 15 18 9"/></svg>
+                                  </div>
+                                </div>
+                                {isExp && (
+                                  <div style={{ borderTop: "1px solid #f3e8ff", padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#334155", lineHeight: 1.6, background: "#faf5ff", padding: "10px 12px", borderRadius: "8px", border: "1px solid #e9d5ff" }}><strong>AI Conclusion:</strong> {r.conclusion}</p>
+                                    {r.recommendation && <p style={{ margin: 0, fontSize: "0.72rem", color: "#475569", fontStyle: "italic" }}>"{r.recommendation}"</p>}
+                                    <div style={{ display: "flex", gap: "10px" }}>
+                                      {r.strengths?.length > 0 && (
+                                        <div style={{ flex: 1, background: "#f0fdf4", borderRadius: "8px", padding: "8px 10px", border: "1px solid #bbf7d0" }}>
+                                          <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#15803d" }}>STRENGTHS</p>
+                                          {r.strengths.map((s: string, i: number) => <p key={i} style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "#166534" }}>• {s}</p>)}
+                                        </div>
+                                      )}
+                                      {r.concerns?.length > 0 && (
+                                        <div style={{ flex: 1, background: "#fef9c3", borderRadius: "8px", padding: "8px 10px", border: "1px solid #fde68a" }}>
+                                          <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#92400e" }}>CONCERNS</p>
+                                          {r.concerns.map((s: string, i: number) => <p key={i} style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "#78350f" }}>• {s}</p>)}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {finalSelResults.length === 0 && !finalSelLoading && (
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: "#94a3b8" }}>Click "Run Final Selection" to synthesise all screening stages and get a comprehensive AI verdict for each candidate.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {activeStage.status === "done" && sortedStageResults.length === 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && (
                     <div style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}>
                       <AlertCircle style={{ width: "32px", height: "32px", margin: "0 auto 8px" }} />
                       <p style={{ margin: 0, fontSize: "0.85rem" }}>No results found for this stage.</p>

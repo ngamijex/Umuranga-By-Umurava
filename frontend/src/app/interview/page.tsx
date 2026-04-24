@@ -363,8 +363,18 @@ export default function InterviewPage() {
     }
   }, []);
 
-  const playAiSpeech = useCallback(async (text: string, onEnd?: () => void) => {
+  const playAiSpeech = useCallback(async (text: string, onEnd?: () => void, onStarted?: () => void) => {
     if (typeof window === "undefined") return;
+    // Mute the mic audio track while AI is speaking to prevent echo feedback.
+    const muteMic = () => {
+      const at = streamRef.current?.getAudioTracks?.()[0];
+      if (at) at.enabled = false;
+    };
+    const unmuteMic = () => {
+      const at = streamRef.current?.getAudioTracks?.()[0];
+      if (at) at.enabled = true;
+    };
+    muteMic();
     // Prefer server TTS so audio is capturable in recordings; fallback to browser speechSynthesis.
     try {
       if (!token) throw new Error("no token");
@@ -398,18 +408,23 @@ export default function InterviewPage() {
 
       await new Promise<void>((resolve) => {
         const done = () => {
+          el.onplay = null;
           el.onended = null;
           el.onerror = null;
           URL.revokeObjectURL(url);
           resolve();
         };
+        // Fire onStarted the moment audio actually begins playing (not while TTS is downloading)
+        el.onplay = () => { onStarted?.(); };
         el.onended = done;
         el.onerror = done;
         el.play().catch(done);
       });
 
+      unmuteMic();
       onEnd?.();
     } catch {
+      unmuteMic();
       speak(text, onEnd);
     }
   }, [token]);
@@ -496,7 +511,7 @@ export default function InterviewPage() {
       // Reset silence timer
       if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
 
-      // After user pauses for 2.5s, auto-submit their accumulated speech
+      // After user pauses for 2s, auto-submit their accumulated speech
       if (capturedRef.current.trim()) {
         silenceTimerRef.current = setTimeout(() => {
           if (statusRef.current === "processing" || statusRef.current === "ai_speaking") return;
@@ -505,7 +520,7 @@ export default function InterviewPage() {
           capturedRef.current = "";
           setLiveCapture("");
           if (sendRef.current) sendRef.current(text);
-        }, 2500);
+        }, 2000);
       }
     };
 
@@ -544,41 +559,41 @@ export default function InterviewPage() {
       if (!d.success) { setStatus("idle"); statusRef.current = "idle"; return; }
       const msg: string = d.data.message;
       setAiMsg(msg);
+      capturedRef.current = "";
+      setLiveCapture("");
       if (d.data.isComplete) {
-        setStatus("ai_speaking");
-        statusRef.current = "ai_speaking";
-        capturedRef.current = "";
-        setLiveCapture("");
-        await playAiSpeech(msg, async () => {
-          setStatus("idle");
-          statusRef.current = "idle";
-          phaseRef.current = "done";
-          if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-          recognitionRef.current?.stop();
-          if (token) await uploadRecording(token);
-          stopCamera();
-          setPhase("done");
-        });
-      } else {
-        setStatus("ai_speaking");
-        statusRef.current = "ai_speaking";
-        capturedRef.current = "";
-        setLiveCapture("");
-        await playAiSpeech(msg, () => {
-          // Cooldown: keep ignoring mic for 2s after AI stops to let speaker echo die
-          capturedRef.current = "";
-          setLiveCapture("");
-          // Restart recognition to flush any buffered echo transcripts
-          if (recognitionRef.current && phaseRef.current === "live") {
-            try { recognitionRef.current.stop(); } catch {}
-          }
-          setTimeout(() => {
-            capturedRef.current = "";
-            setLiveCapture("");
+        await playAiSpeech(
+          msg,
+          async () => {
             setStatus("idle");
             statusRef.current = "idle";
-          }, 2000);
-        });
+            phaseRef.current = "done";
+            if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+            recognitionRef.current?.stop();
+            if (token) await uploadRecording(token);
+            stopCamera();
+            setPhase("done");
+          },
+          () => { setStatus("ai_speaking"); statusRef.current = "ai_speaking"; }
+        );
+      } else {
+        await playAiSpeech(
+          msg,
+          () => {
+            capturedRef.current = "";
+            setLiveCapture("");
+            if (recognitionRef.current && phaseRef.current === "live") {
+              try { recognitionRef.current.stop(); } catch {}
+            }
+            setTimeout(() => {
+              capturedRef.current = "";
+              setLiveCapture("");
+              setStatus("idle");
+              statusRef.current = "idle";
+            }, 1000);
+          },
+          () => { setStatus("ai_speaking"); statusRef.current = "ai_speaking"; }
+        );
       }
     } catch { setStatus("idle"); statusRef.current = "idle"; }
   }, [token, stopCamera, uploadRecording]);
@@ -600,24 +615,27 @@ export default function InterviewPage() {
       setAiMsg(msg);
       setPhase("live");
       phaseRef.current = "live";
-      setStatus("ai_speaking");
-      statusRef.current = "ai_speaking";
-      // Start continuous listening immediately — mic is always open
+      setStatus("processing"); // will switch to "ai_speaking" only when audio actually starts
+      statusRef.current = "processing";
+      // Start continuous listening immediately — mic is always open (muted while AI speaks)
       startContinuousListening();
-      await playAiSpeech(msg, () => {
-        // Cooldown: keep ignoring mic for 2s after AI stops to let speaker echo die
-        capturedRef.current = "";
-        setLiveCapture("");
-        if (recognitionRef.current && phaseRef.current === "live") {
-          try { recognitionRef.current.stop(); } catch {}
-        }
-        setTimeout(() => {
+      await playAiSpeech(
+        msg,
+        () => {
           capturedRef.current = "";
           setLiveCapture("");
-          setStatus("idle");
-          statusRef.current = "idle";
-        }, 2000);
-      });
+          if (recognitionRef.current && phaseRef.current === "live") {
+            try { recognitionRef.current.stop(); } catch {}
+          }
+          setTimeout(() => {
+            capturedRef.current = "";
+            setLiveCapture("");
+            setStatus("idle");
+            statusRef.current = "idle";
+          }, 1000);
+        },
+        () => { setStatus("ai_speaking"); statusRef.current = "ai_speaking"; }
+      );
     } catch { setErrorMsg("Failed to start interview."); setPhase("error"); }
   }, [token, startCamera, startContinuousListening, playAiSpeech]);
 
@@ -694,7 +712,7 @@ export default function InterviewPage() {
     };
   }, [computeTourSpot]);
 
-  /* end interview manually */
+  /* end interview manually — mark as completed in DB */
   const endInterview = useCallback(async () => {
     stopSpeaking();
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
@@ -704,7 +722,11 @@ export default function InterviewPage() {
     setStatus("idle");
     statusRef.current = "idle";
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
-    if (token) await uploadRecording(token);
+    if (token) {
+      // Mark session completed in DB, then upload recording
+      fetch(`${API}/public/interview/${token}/complete`, { method: "POST" }).catch(() => {});
+      await uploadRecording(token);
+    }
     stopCamera();
     setShowEndConfirm(false);
     setPhase("done");

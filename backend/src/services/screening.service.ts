@@ -198,7 +198,7 @@ export const screenCandidate = async (
   const prompt = buildPrompt(job, candidate, combinedHr, stageType);
 
   try {
-    const text = await geminiChatText(prompt);
+    const text = await geminiChatText(prompt, { maxOutputTokens: 2048 });
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("Gemini returned an unexpected format — no JSON found.");
