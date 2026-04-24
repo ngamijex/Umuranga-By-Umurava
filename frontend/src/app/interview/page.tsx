@@ -187,7 +187,7 @@ function ScoreRing({ value, label, color }: { value: number; label: string; colo
 export default function InterviewPage() {
   const [token, setToken] = useState<string | null>(null);
   const [info, setInfo] = useState<SessionInfo | null>(null);
-  const [phase, setPhase] = useState<"loading" | "error" | "lobby" | "starting" | "live" | "done">("loading");
+  const [phase, setPhase] = useState<"loading" | "error" | "lobby" | "tour" | "starting" | "live" | "done">("loading");
   const [errorMsg, setErrorMsg] = useState("");
 
   /* interview state */
@@ -200,9 +200,10 @@ export default function InterviewPage() {
   const [captionsOn, setCaptionsOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
-  const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [tourSpot, setTourSpot] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [tourTargetMissing, setTourTargetMissing] = useState(false);
 
   /* refs */
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -239,25 +240,10 @@ export default function InterviewPage() {
       .catch(() => { setErrorMsg("Could not load interview. Check your connection."); setPhase("error"); });
   }, [token]);
 
-  /* one-time tour (per browser) */
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (phase !== "lobby") return;
-    try {
-      const seen = window.localStorage.getItem("umuranga_interview_tour_v1");
-      if (!seen) {
-        setShowTour(true);
-        setTourStep(0);
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [phase]);
-
   /* camera */
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (opts?: { startRecorder?: boolean }) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = streamRef.current ?? (await navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
       streamRef.current = stream;
       // Attach immediately if the video element is already mounted
       if (videoRef.current) {
@@ -265,10 +251,12 @@ export default function InterviewPage() {
         videoRef.current.muted = true;
         videoRef.current.play().catch(() => {});
       }
-      const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8,opus" });
-      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.start(1000);
-      recorderRef.current = recorder;
+      if (opts?.startRecorder !== false) {
+        const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8,opus" });
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+        recorder.start(1000);
+        recorderRef.current = recorder;
+      }
       return true;
     } catch { return false; }
   }, []);
@@ -449,7 +437,7 @@ export default function InterviewPage() {
     if (!token) return;
     setPhase("starting");
     phaseRef.current = "starting";
-    const ok = await startCamera();
+    const ok = await startCamera({ startRecorder: true });
     if (!ok) { setErrorMsg("Camera/microphone access denied. Please allow access and try again."); setPhase("error"); return; }
     try {
       const res = await fetch(`${API}/public/interview/${token}/start`, { method: "POST" });
@@ -494,6 +482,124 @@ export default function InterviewPage() {
     const t = setTimeout(() => setCountdown((c) => (c === null ? null : c - 1)), 1000);
     return () => clearTimeout(t);
   }, [countdown, beginInterview]);
+
+  const openTour = useCallback(async () => {
+    setTourStep(0);
+    setTourTargetMissing(false);
+    setPhase("tour");
+    phaseRef.current = "tour";
+    // Try to start camera preview during tour so the user can verify devices.
+    // Do NOT start recording or call backend start.
+    await startCamera({ startRecorder: false });
+  }, [startCamera]);
+
+  const closeTour = useCallback(() => {
+    setPhase("lobby");
+    phaseRef.current = "lobby";
+    setTourStep(0);
+    setTourSpot(null);
+    setTourTargetMissing(false);
+  }, []);
+
+  const finishTourAndStartCountdown = useCallback(() => {
+    try { window.localStorage.setItem("umuranga_interview_tour_v1", "1"); } catch {}
+    setTourSpot(null);
+    setTourTargetMissing(false);
+    startCountdownThenBegin();
+  }, [startCountdownThenBegin]);
+
+  type TourStep = {
+    id: string;
+    selector: string;
+    title: string;
+    body: string;
+    placement?: "top" | "bottom" | "left" | "right";
+  };
+
+  const tourSteps: TourStep[] = [
+    {
+      id: "you-video",
+      selector: "[data-tour='you-video']",
+      title: "This is your camera preview.",
+      body: "Stay centered and well-lit. You can keep your camera on, or turn it off anytime.",
+      placement: "right",
+    },
+    {
+      id: "mic",
+      selector: "[data-tour='mic-indicator']",
+      title: "Your microphone is always listening.",
+      body: "You don’t need to press any button. After the AI finishes speaking, just start talking naturally.",
+      placement: "top",
+    },
+    {
+      id: "captions",
+      selector: "[data-tour='captions-toggle']",
+      title: "Captions show what the AI says.",
+      body: "Captions are on by default so you can read along. Toggle them on/off any time.",
+      placement: "top",
+    },
+    {
+      id: "camera-toggle",
+      selector: "[data-tour='camera-toggle']",
+      title: "Camera toggle.",
+      body: "If you need privacy or low bandwidth, you can switch the camera off. Audio stays on for your answers.",
+      placement: "top",
+    },
+    {
+      id: "end",
+      selector: "[data-tour='end-button']",
+      title: "End the interview anytime.",
+      body: "If something goes wrong or you’re done, click End. Your conversation so far will be saved.",
+      placement: "top",
+    },
+    {
+      id: "ai-panel",
+      selector: "[data-tour='ai-panel']",
+      title: "AI interviewer panel.",
+      body: "Watch the status: Speaking → Waiting → Listening. When it’s Waiting, you can answer.",
+      placement: "left",
+    },
+    {
+      id: "ready",
+      selector: "[data-tour='start-cta']",
+      title: "When you’re ready, start the interview.",
+      body: "You’ll get a 10‑second countdown to get comfortable before the first question begins.",
+      placement: "top",
+    },
+  ];
+
+  const computeTourSpot = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (phase !== "tour") return;
+    const step = tourSteps[Math.min(tourStep, tourSteps.length - 1)];
+    const el = document.querySelector(step.selector) as HTMLElement | null;
+    if (!el) {
+      setTourTargetMissing(true);
+      setTourSpot(null);
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    const pad = 10;
+    setTourTargetMissing(false);
+    setTourSpot({
+      x: Math.max(0, r.left - pad),
+      y: Math.max(0, r.top - pad),
+      w: Math.min(window.innerWidth, r.width + pad * 2),
+      h: Math.min(window.innerHeight, r.height + pad * 2),
+    });
+  }, [phase, tourStep, tourSteps]);
+
+  useEffect(() => {
+    computeTourSpot();
+    if (typeof window === "undefined") return;
+    const onResize = () => computeTourSpot();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", onResize, true);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onResize, true);
+    };
+  }, [computeTourSpot]);
 
   /* end interview manually */
   const endInterview = useCallback(async () => {
@@ -626,126 +732,17 @@ export default function InterviewPage() {
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <button
-                onClick={() => { setShowTour(true); setTourStep(0); }}
-                style={{ padding: "14px", borderRadius: 12, background: C.gray100, color: C.gray700, border: `1px solid ${C.gray200}`, fontSize: "0.9rem", fontWeight: 700, cursor: "pointer" }}
-              >
-                Take a quick tour
-              </button>
-              <button
                 onClick={() => {
-                  // If tour is open, the button is behind overlay anyway.
-                  startCountdownThenBegin();
+                  openTour();
                 }}
-                style={{ padding: "14px", borderRadius: 12, background: C.primary, color: C.white, border: "none", fontSize: "0.925rem", fontWeight: 800, cursor: "pointer" }}
+                style={{ gridColumn: "1 / span 2", padding: "14px", borderRadius: 12, background: C.primary, color: C.white, border: "none", fontSize: "0.925rem", fontWeight: 800, cursor: "pointer" }}
               >
-                Begin (10s countdown)
+                Begin interview
               </button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* ── Tour overlay ── */}
-      {showTour && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(2,6,23,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-          <div style={{ width: "min(640px, 100%)", background: C.white, borderRadius: 18, border: `1px solid ${C.gray200}`, boxShadow: "0 16px 60px rgba(0,0,0,0.25)", overflow: "hidden" }}>
-            <div style={{ background: C.primary, color: C.white, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div>
-                <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 800, opacity: 0.75, letterSpacing: "0.12em" }}>INTERFACE TOUR</p>
-                <p style={{ margin: "4px 0 0", fontSize: "1rem", fontWeight: 900 }}>Here’s how the interview works</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowTour(false);
-                  try { window.localStorage.setItem("umuranga_interview_tour_v1", "1"); } catch {}
-                }}
-                style={{ background: "rgba(255,255,255,0.15)", color: C.white, border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 10px", fontSize: "0.78rem", fontWeight: 800, cursor: "pointer" }}
-              >
-                Skip
-              </button>
-            </div>
-
-            {(() => {
-              const steps = [
-                {
-                  title: "You don’t need to press “Record”.",
-                  body: "The AI speaks first. When it finishes, just start talking naturally. The system listens continuously and submits after a short pause.",
-                },
-                {
-                  title: "Captions help you follow along.",
-                  body: "Captions are on by default. You can toggle them any time during the interview if you prefer to listen only.",
-                },
-                {
-                  title: "Camera controls are always available.",
-                  body: "You can turn your camera on/off during the interview. Audio stays on to capture your answers.",
-                },
-                {
-                  title: "End anytime — safely.",
-                  body: "If you need to stop, use the End button. Your conversation so far will be uploaded and saved.",
-                },
-                {
-                  title: "We’ll do a 10‑second countdown.",
-                  body: "After the tour, you’ll get a short countdown to get comfortable before the interview starts.",
-                },
-              ];
-              const s = steps[Math.min(tourStep, steps.length - 1)];
-              const total = steps.length;
-              return (
-                <div style={{ padding: "20px 20px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-                    <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 800, color: C.gray500 }}>
-                      Step {Math.min(tourStep + 1, total)} of {total}
-                    </p>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {Array.from({ length: total }).map((_, i) => (
-                        <div key={i} style={{ width: i === tourStep ? 18 : 8, height: 8, borderRadius: 999, background: i <= tourStep ? C.primary : C.gray200, transition: "width 0.2s" }} />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ border: `1px solid ${C.gray200}`, background: C.gray50, borderRadius: 14, padding: "18px 16px" }}>
-                    <h3 style={{ margin: "0 0 8px", fontSize: "1.05rem", fontWeight: 900, color: C.gray900 }}>{s.title}</h3>
-                    <p style={{ margin: 0, fontSize: "0.9rem", color: C.gray700, lineHeight: 1.7 }}>{s.body}</p>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-                    <button
-                      onClick={() => setTourStep((n) => Math.max(0, n - 1))}
-                      disabled={tourStep === 0}
-                      style={{
-                        flex: 1,
-                        padding: "12px 12px",
-                        borderRadius: 12,
-                        background: tourStep === 0 ? C.gray100 : C.white,
-                        border: `1px solid ${C.gray200}`,
-                        color: C.gray700,
-                        fontSize: "0.9rem",
-                        fontWeight: 800,
-                        cursor: tourStep === 0 ? "not-allowed" : "pointer",
-                        opacity: tourStep === 0 ? 0.7 : 1,
-                      }}
-                    >
-                      Back
-                    </button>
-                    <button
-                      onClick={() => {
-                        const last = tourStep >= total - 1;
-                        if (!last) { setTourStep((n) => Math.min(total - 1, n + 1)); return; }
-                        setShowTour(false);
-                        try { window.localStorage.setItem("umuranga_interview_tour_v1", "1"); } catch {}
-                        startCountdownThenBegin();
-                      }}
-                      style={{ flex: 1.4, padding: "12px 12px", borderRadius: 12, background: C.primary, border: "none", color: C.white, fontSize: "0.95rem", fontWeight: 900, cursor: "pointer" }}
-                    >
-                      {tourStep >= total - 1 ? "Start countdown" : "Next"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
 
       {/* ── Countdown overlay ── */}
       {countdown !== null && (
@@ -779,7 +776,7 @@ export default function InterviewPage() {
     </div>
   );
 
-  /* ══════════ LIVE INTERVIEW ══════════ */
+  /* ══════════ TOUR + LIVE INTERVIEW ══════════ */
   return (
     <div style={{ minHeight: "100vh", background: C.gray100, paddingTop: 52, display: "flex", flexDirection: "column" }}>
       <NavBar />
@@ -793,6 +790,158 @@ export default function InterviewPage() {
         .wv:nth-child(4){animation-delay:.36s}
         .wv:nth-child(5){animation-delay:.48s}
       `}</style>
+
+      {/* ── Tour spotlight overlay ── */}
+      {phase === "tour" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 650, pointerEvents: "auto" }}>
+          {/* dim layer */}
+          <div style={{ position: "absolute", inset: 0, background: "rgba(2,6,23,0.62)" }} />
+
+          {/* spotlight ring */}
+          {tourSpot && (
+            <div
+              style={{
+                position: "absolute",
+                left: tourSpot.x,
+                top: tourSpot.y,
+                width: tourSpot.w,
+                height: tourSpot.h,
+                borderRadius: 18,
+                boxShadow: "0 0 0 9999px rgba(2,6,23,0.62), 0 10px 40px rgba(0,0,0,0.35)",
+                outline: `2px solid rgba(255,255,255,0.18)`,
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  inset: -10,
+                  borderRadius: 22,
+                  border: `2px solid ${C.primary}`,
+                  boxShadow: `0 0 0 6px rgba(43,114,240,0.18)`,
+                }}
+              />
+            </div>
+          )}
+
+          {/* tooltip card */}
+          {(() => {
+            const step = tourSteps[Math.min(tourStep, tourSteps.length - 1)];
+            const total = tourSteps.length;
+            const cardW = 380;
+            const margin = 14;
+            const anchor = tourSpot
+              ? { x: tourSpot.x + tourSpot.w / 2, y: tourSpot.y + tourSpot.h / 2, w: tourSpot.w, h: tourSpot.h }
+              : { x: window.innerWidth / 2, y: window.innerHeight / 2, w: 0, h: 0 };
+
+            // naive placement based on viewport; keep inside screen
+            let left = Math.min(window.innerWidth - cardW - margin, Math.max(margin, anchor.x - cardW / 2));
+            let top = margin;
+            const desired = step.placement || "bottom";
+            if (desired === "bottom") top = Math.min(window.innerHeight - 210 - margin, anchor.y + anchor.h / 2 + 18);
+            if (desired === "top") top = Math.max(margin, anchor.y - anchor.h / 2 - 18 - 210);
+            if (desired === "left") {
+              left = Math.max(margin, anchor.x - anchor.w / 2 - 18 - cardW);
+              top = Math.min(window.innerHeight - 210 - margin, Math.max(margin, anchor.y - 105));
+            }
+            if (desired === "right") {
+              left = Math.min(window.innerWidth - cardW - margin, anchor.x + anchor.w / 2 + 18);
+              top = Math.min(window.innerHeight - 210 - margin, Math.max(margin, anchor.y - 105));
+            }
+
+            return (
+              <div style={{ position: "absolute", left, top, width: cardW, maxWidth: "calc(100vw - 28px)" }}>
+                <div style={{ background: "rgba(255,255,255,0.96)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 16, padding: "16px 16px 14px", boxShadow: "0 18px 70px rgba(0,0,0,0.35)", backdropFilter: "blur(10px)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+                    <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 900, color: C.primary, letterSpacing: "0.12em" }}>
+                      TOUR • STEP {Math.min(tourStep + 1, total)} / {total}
+                    </p>
+                    <button
+                      onClick={() => {
+                        try { window.localStorage.setItem("umuranga_interview_tour_v1", "1"); } catch {}
+                        closeTour();
+                      }}
+                      style={{ background: "transparent", border: "none", color: C.gray500, fontSize: "0.8rem", fontWeight: 900, cursor: "pointer" }}
+                    >
+                      Skip
+                    </button>
+                  </div>
+
+                  <h3 style={{ margin: "0 0 6px", fontSize: "1rem", fontWeight: 950, color: C.gray900 }}>{step.title}</h3>
+                  <p style={{ margin: 0, fontSize: "0.88rem", color: C.gray700, lineHeight: 1.65 }}>{step.body}</p>
+
+                  {tourTargetMissing && (
+                    <div style={{ marginTop: 10, fontSize: "0.78rem", color: "#92400e", background: "#FEF9C3", border: "1px solid #FDE68A", borderRadius: 10, padding: "8px 10px" }}>
+                      This feature isn’t visible right now. Resize your window or continue to the next step.
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                    <button
+                      onClick={() => setTourStep((n) => Math.max(0, n - 1))}
+                      disabled={tourStep === 0}
+                      style={{
+                        flex: 1,
+                        padding: "10px 10px",
+                        borderRadius: 12,
+                        background: tourStep === 0 ? "rgba(15,23,42,0.04)" : "rgba(255,255,255,0.9)",
+                        border: "1px solid rgba(15,23,42,0.12)",
+                        color: C.gray700,
+                        fontSize: "0.88rem",
+                        fontWeight: 900,
+                        cursor: tourStep === 0 ? "not-allowed" : "pointer",
+                        opacity: tourStep === 0 ? 0.7 : 1,
+                      }}
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => {
+                        const last = tourStep >= total - 1;
+                        if (!last) { setTourStep((n) => Math.min(total - 1, n + 1)); return; }
+                        finishTourAndStartCountdown();
+                      }}
+                      style={{ flex: 1.2, padding: "10px 10px", borderRadius: 12, background: C.primary, border: "none", color: C.white, fontSize: "0.9rem", fontWeight: 950, cursor: "pointer" }}
+                    >
+                      {tourStep >= total - 1 ? "Start interview" : "Next"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── Countdown overlay (shared) ── */}
+      {countdown !== null && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 700, background: "radial-gradient(1200px 600px at 50% 40%, rgba(43,114,240,0.22), rgba(15,23,42,0.72))", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ width: "min(520px, 100%)", background: "rgba(255,255,255,0.92)", borderRadius: 22, border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 24px 90px rgba(0,0,0,0.35)", padding: "26px 22px", textAlign: "center", backdropFilter: "blur(10px)" }}>
+            <p style={{ margin: "0 0 10px", fontSize: "0.72rem", fontWeight: 900, color: C.primary, letterSpacing: "0.12em" }}>GET READY</p>
+            <p style={{ margin: "0 0 18px", fontSize: "1.05rem", fontWeight: 900, color: C.gray900 }}>Interview starts in</p>
+            <div style={{ fontSize: "4.2rem", fontWeight: 950, lineHeight: 1, color: C.primary, letterSpacing: "-0.06em" }}>
+              {countdown}
+            </div>
+            <p style={{ margin: "12px 0 0", fontSize: "0.9rem", color: C.gray700, lineHeight: 1.6 }}>
+              Find a quiet spot, check your mic, and take a breath.
+            </p>
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button
+                onClick={() => setCountdown(null)}
+                style={{ flex: 1, padding: "12px", borderRadius: 12, background: C.white, border: `1px solid ${C.gray200}`, color: C.gray700, fontSize: "0.9rem", fontWeight: 900, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setCountdown(1)}
+                style={{ flex: 1, padding: "12px", borderRadius: 12, background: C.primary, border: "none", color: C.white, fontSize: "0.9rem", fontWeight: 950, cursor: "pointer" }}
+              >
+                Start now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── End interview confirmation overlay ── */}
       {showEndConfirm && (
@@ -835,7 +984,7 @@ export default function InterviewPage() {
           alignSelf: "flex-start",
         }}>
           {/* inner clip so video stays inside rounded corners */}
-          <div style={{ position: "absolute", inset: 0, borderRadius: 20, overflow: "hidden" }}>
+          <div data-tour="you-video" style={{ position: "absolute", inset: 0, borderRadius: 20, overflow: "hidden" }}>
             {/* Video feed */}
             <video
               ref={videoRef}
@@ -896,6 +1045,7 @@ export default function InterviewPage() {
             }}>
               {/* Mic — always on indicator */}
               <div
+                data-tour="mic-indicator"
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
               >
                 {status === "listening" ? Ic.mic(C.green) : Ic.mic("rgba(255,255,255,0.9)")}
@@ -906,6 +1056,7 @@ export default function InterviewPage() {
 
               {/* Captions */}
               <button
+                data-tour="captions-toggle"
                 onClick={() => setCaptionsOn(v => !v)}
                 style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, opacity: captionsOn ? 1 : 0.5 }}
               >
@@ -915,6 +1066,7 @@ export default function InterviewPage() {
 
               {/* Camera */}
               <button
+                data-tour="camera-toggle"
                 onClick={toggleCameraTrack}
                 style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, opacity: cameraOn ? 1 : 0.5 }}
               >
@@ -924,6 +1076,7 @@ export default function InterviewPage() {
 
               {/* End interview */}
               <button
+                data-tour="end-button"
                 onClick={() => setShowEndConfirm(true)}
                 style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
               >
@@ -936,6 +1089,7 @@ export default function InterviewPage() {
 
         {/* ── Right: AI panel — narrower ── */}
         <div style={{
+          position: "relative",
           flex: "1 1 0",
           minWidth: 260,
           maxWidth: 340,
@@ -952,6 +1106,7 @@ export default function InterviewPage() {
           gap: 0,
           alignSelf: "flex-start",
         }}>
+          <div data-tour="ai-panel" style={{ position: "absolute", inset: 0, borderRadius: 20 }} />
           {/* AI avatar */}
           <div style={{ position: "relative", marginBottom: 14 }}>
             <div style={{
@@ -1020,6 +1175,32 @@ export default function InterviewPage() {
         </div>
 
       </div>
+
+      {/* Start CTA (only in tour mode) */}
+      {phase === "tour" && (
+        <div data-tour="start-cta" style={{ position: "fixed", bottom: 18, left: 18, right: 18, zIndex: 640, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+          <div style={{ width: "min(980px, 100%)", display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.92)", border: "1px solid rgba(255,255,255,0.6)", borderRadius: 16, padding: "12px 14px", boxShadow: "0 14px 50px rgba(0,0,0,0.25)", backdropFilter: "blur(10px)", pointerEvents: "auto" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <span style={{ fontSize: "0.7rem", fontWeight: 900, color: C.primary, letterSpacing: "0.12em" }}>READY?</span>
+              <span style={{ fontSize: "0.9rem", fontWeight: 900, color: C.gray900 }}>When you finish the tour, you’ll get a 10‑second countdown.</span>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={closeTour}
+                style={{ padding: "10px 12px", borderRadius: 12, background: C.white, border: `1px solid ${C.gray200}`, color: C.gray700, fontSize: "0.9rem", fontWeight: 900, cursor: "pointer" }}
+              >
+                Back to intro
+              </button>
+              <button
+                onClick={finishTourAndStartCountdown}
+                style={{ padding: "10px 12px", borderRadius: 12, background: C.primary, border: "none", color: C.white, fontSize: "0.9rem", fontWeight: 950, cursor: "pointer" }}
+              >
+                Start interview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
