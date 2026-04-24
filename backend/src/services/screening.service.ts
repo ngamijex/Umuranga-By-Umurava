@@ -198,13 +198,19 @@ export const screenCandidate = async (
   const prompt = buildPrompt(job, candidate, combinedHr, stageType);
 
   try {
-    const text = await geminiChatText(prompt, { maxOutputTokens: 2048 });
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Gemini returned an unexpected format — no JSON found.");
-    }
+    // Screening JSON is large (5+ comparison rows + HR paragraphs) — needs enough tokens to complete.
+    const text = await geminiChatText(prompt, { maxOutputTokens: 6000 });
 
-    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+    // Find the outermost JSON object in the response.
+    // Use lastIndexOf('}') so we get the full object even when Gemini wraps it in prose.
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      throw new Error("Gemini returned an unexpected format — no JSON object found.");
+    }
+    const jsonStr = text.slice(firstBrace, lastBrace + 1);
+
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
     return normalizeScreeningOutput(parsed);
   } catch (error: any) {
     console.error("[screenCandidate] Gemini error:", error?.message || String(error));
