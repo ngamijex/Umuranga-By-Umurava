@@ -10,7 +10,7 @@ import { Candidate } from "../models/Candidate.model";
 import { ScreeningResult } from "../models/ScreeningResult.model";
 import { PracticalSubmission } from "../models/PracticalSubmission.model";
 import { InterviewSession } from "../models/InterviewSession.model";
-import { getLlmConcurrency, sleep } from "../config/llmBatch";
+import { getMsBetweenCandidates, sleep } from "../config/llmBatch";
 import { buildHrContextStringForJob } from "../services/pipelineHrContext.service";
 import { screenCandidate } from "../services/screening.service";
 import { draftEmailsForStageOutcome, draftPracticalInvitationEmails } from "../services/applicantComms.service";
@@ -18,173 +18,10 @@ import { sendApplicantEmail, isEmailConfigured } from "../services/email.service
 import { gradeAllPending, gradeSubmission, compareAndRankSubmissions } from "../services/practicalAssessment.service";
 import { aiGeneratePracticalAssessment, aiGenerateDatasets } from "../services/practicalAssessmentBuilder.service";
 import { generateInterviewQuestions } from "../services/interview.service";
-import { geminiChatText } from "../config/gemini";
 import type { IPracticalAssessmentDefinition, IAssessmentResource } from "../models/assessmentDefinition";
 
 const router = Router();
 router.use(protect);
-
-/* ── In-memory background run status ─────────────────────────────── */
-interface StageRunStatus {
-  total: number;
-  processed: number;
-  failed: number;
-  done: boolean;
-  startedAt: Date;
-  errors: Array<{ candidateId: string; name: string; error: string }>;
-  aiShortlistCount?: number;
-  targetCount?: number;
-  pipelineSnapshot?: any;
-}
-const stageRunMap = new Map<string, StageRunStatus>();
-function runKey(jobId: string, idx: number) { return `${jobId}:${idx}`; }
-
-/** Run N async tasks concurrently (worker-pool pattern, no external deps). */
-async function runConcurrent<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>
-): Promise<void> {
-  const queue = [...items];
-  async function worker() {
-    while (queue.length > 0) {
-      const item = queue.shift()!;
-      await fn(item);
-    }
-  }
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, worker)
-  );
-}
-
-/** Fire-and-forget background screening job. */
-async function runScreeningBackground(
-  jobId: string,
-  stageIdx: number,
-  job: any,
-  stage: any,
-  candidates: any[],
-  hrContext: string,
-  candidateIds: mongoose.Types.ObjectId[]
-): Promise<void> {
-  const key = runKey(jobId, stageIdx);
-  const status: StageRunStatus = {
-    total: candidates.length,
-    processed: 0,
-    failed: 0,
-    done: false,
-    startedAt: new Date(),
-    errors: [],
-  };
-  stageRunMap.set(key, status);
-
-  const concurrency = getLlmConcurrency(10);
-  const results: any[] = [];
-  const failedCandidates: any[] = [];
-
-  // ── Pass 1: screen all candidates concurrently ──────────────────────────
-  await runConcurrent(candidates, concurrency, async (candidate) => {
-    try {
-      const result = await screenCandidate(job, candidate, hrContext, stage.type);
-      const s = await ScreeningResult.findOneAndUpdate(
-        { jobId, candidateId: candidate._id },
-        { ...result, jobId, candidateId: candidate._id },
-        { upsert: true, new: true }
-      );
-      await Candidate.findByIdAndUpdate(candidate._id, { status: "screened" });
-      results.push(s);
-    } catch (e: any) {
-      status.failed++;
-      status.errors.push({
-        candidateId: String(candidate._id),
-        name: `${candidate.firstName} ${candidate.lastName}`,
-        error: e.message,
-      });
-      failedCandidates.push(candidate);
-      console.error(`[Pipeline] Error screening ${candidate._id}:`, e.message);
-    } finally {
-      status.processed++;
-      stageRunMap.set(key, { ...status });
-    }
-  });
-
-  // ── Pass 2: auto-retry failed candidates once (with half-concurrency) ───
-  if (failedCandidates.length > 0) {
-    console.log(`[Pipeline] Retrying ${failedCandidates.length} failed candidates…`);
-    await sleep(3000); // brief pause before retry
-    const retryConcurrency = Math.max(1, Math.floor(concurrency / 2));
-    await runConcurrent(failedCandidates, retryConcurrency, async (candidate) => {
-      try {
-        const result = await screenCandidate(job, candidate, hrContext, stage.type);
-        const s = await ScreeningResult.findOneAndUpdate(
-          { jobId, candidateId: candidate._id },
-          { ...result, jobId, candidateId: candidate._id },
-          { upsert: true, new: true }
-        );
-        await Candidate.findByIdAndUpdate(candidate._id, { status: "screened" });
-        results.push(s);
-        // Remove from errors list on success
-        const errIdx = status.errors.findIndex(e => e.candidateId === String(candidate._id));
-        if (errIdx !== -1) { status.errors.splice(errIdx, 1); status.failed--; }
-        stageRunMap.set(key, { ...status });
-      } catch {
-        // Retry also failed — leave in errors list
-      }
-    });
-  }
-
-  // ── Finalize: rank (bulk), shortlist, pipeline update ───────────────────
-  try {
-    const sorted = results.sort((a: any, b: any) => b.overallScore - a.overallScore);
-
-    // Bulk-update ranks in a single MongoDB operation instead of N awaits
-    if (sorted.length > 0) {
-      await ScreeningResult.bulkWrite(
-        sorted.map((s: any, i: number) => ({
-          updateOne: { filter: { _id: s._id }, update: { $set: { rank: i + 1 } } },
-        }))
-      );
-    }
-
-    const pipeline = await Pipeline.findOne({ jobId });
-    if (pipeline) {
-      const targetCount = Math.max(0, Math.floor(Number(pipeline.stages[stageIdx].hrInputs?.targetCount) || 0));
-      const aiShortlist = pickAiShortlistIds(
-        sorted.map((s: any) => ({
-          candidateId: s.candidateId,
-          recommendation: String(s.recommendation),
-          overallScore: Number(s.overallScore) || 0,
-        })),
-        targetCount
-      );
-      pipeline.stages[stageIdx].shortlistedIds = aiShortlist;
-      pipeline.stages[stageIdx].status = "done";
-      pipeline.stages[stageIdx].ranAt = new Date();
-      await pipeline.save();
-
-      await applyStageShortlistOutcomes(
-        jobId,
-        stageIdx,
-        stage.name,
-        candidateIds,
-        aiShortlist
-      );
-
-      const pipelineFresh = (await Pipeline.findOne({ jobId })) || pipeline;
-      status.aiShortlistCount = aiShortlist.length;
-      status.targetCount = targetCount;
-      status.pipelineSnapshot = pipelineFresh;
-    }
-  } catch (e: any) {
-    console.error("[Pipeline] Background finalization error:", e.message);
-  }
-
-  status.done = true;
-  stageRunMap.set(key, { ...status });
-
-  // Auto-clean from memory after 30 minutes (give more room for large batches)
-  setTimeout(() => stageRunMap.delete(key), 30 * 60 * 1000);
-}
 
 /**
  * Picks up to `targetCount` candidates for the next pipeline step: tiers strong_yes → yes → maybe
@@ -198,28 +35,30 @@ async function applyStageShortlistOutcomes(
   poolIds: mongoose.Types.ObjectId[],
   shortlistedIds: mongoose.Types.ObjectId[]
 ): Promise<void> {
-  if (poolIds.length === 0) return;
   const shortSet = new Set(shortlistedIds.map(id => String(id)));
-
-  // Single bulkWrite instead of N sequential updateOne calls
-  await Candidate.bulkWrite(
-    poolIds.map(pid => {
-      if (shortSet.has(String(pid))) {
-        return {
-          updateOne: {
-            filter: { _id: pid, jobId },
-            update: { $set: { status: "shortlisted" }, $unset: { rejectedAtStageIndex: 1, rejectedAtStageName: 1 } },
+  for (const pid of poolIds) {
+    const idStr = String(pid);
+    if (shortSet.has(idStr)) {
+      await Candidate.updateOne(
+        { _id: pid, jobId },
+        {
+          $set: { status: "shortlisted" },
+          $unset: { rejectedAtStageIndex: 1, rejectedAtStageName: 1 },
+        }
+      );
+    } else {
+      await Candidate.updateOne(
+        { _id: pid, jobId },
+        {
+          $set: {
+            status: "rejected",
+            rejectedAtStageIndex: stageIndex,
+            rejectedAtStageName: stageName,
           },
-        };
-      }
-      return {
-        updateOne: {
-          filter: { _id: pid, jobId },
-          update: { $set: { status: "rejected", rejectedAtStageIndex: stageIndex, rejectedAtStageName: stageName } },
-        },
-      };
-    })
-  );
+        }
+      );
+    }
+  }
 }
 
 function pickAiShortlistIds(
@@ -320,36 +159,27 @@ router.patch("/:jobId/stage/:idx/hr-inputs", async (req: AuthRequest, res: Respo
   }
 });
 
-/* POST /pipeline/:jobId/stage/:idx/run  — start AI screening (background, non-blocking) */
+/* POST /pipeline/:jobId/stage/:idx/run  — run AI screening for a stage */
 router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { jobId } = req.params;
-    const idx = parseInt(req.params.idx);
-
-    const pipeline = await Pipeline.findOne({ jobId });
+    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
     if (!pipeline) { res.status(404).json({ success: false, error: "Pipeline not found" }); return; }
+    const idx = parseInt(req.params.idx);
     if (isNaN(idx) || idx < 0 || idx >= pipeline.stages.length) {
       res.status(400).json({ success: false, error: "Invalid stage index" }); return;
     }
-    const job = await Job.findById(jobId);
+    const job = await Job.findById(req.params.jobId);
     if (!job) { res.status(404).json({ success: false, error: "Job not found" }); return; }
-
-    // Prevent duplicate runs
-    const key = runKey(jobId, idx);
-    const existing = stageRunMap.get(key);
-    if (existing && !existing.done) {
-      res.json({ success: true, data: { alreadyRunning: true, total: existing.total } });
-      return;
-    }
 
     const stage = pipeline.stages[idx];
 
-    let candidateIds: mongoose.Types.ObjectId[];
+    /* Determine which candidates to screen */
+    let candidateIds: any[];
     if (idx === 0) {
-      const all = await Candidate.find({ jobId }).select("_id");
-      candidateIds = all.map(c => c._id as mongoose.Types.ObjectId);
+      const all = await Candidate.find({ jobId: req.params.jobId }).select("_id");
+      candidateIds = all.map(c => c._id);
     } else {
-      candidateIds = pipeline.stages[idx - 1].shortlistedIds as mongoose.Types.ObjectId[];
+      candidateIds = pipeline.stages[idx - 1].shortlistedIds;
     }
     if (!candidateIds.length) {
       res.status(400).json({ success: false, error: "No candidates to screen at this stage" }); return;
@@ -357,44 +187,90 @@ router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): P
 
     pipeline.stages[idx].candidateIds = candidateIds;
     pipeline.stages[idx].status = "running";
-    pipeline.markModified("stages");
     await pipeline.save();
 
-    const hrContext = await buildHrContextStringForJob(jobId, idx);
-    const candidates = await Candidate.find({ _id: { $in: candidateIds } });
+    /* HR context for this stage (same builder as standalone screening uses for stage 0) */
+    const hrContext = await buildHrContextStringForJob(req.params.jobId, idx);
 
-    // Respond immediately — background job processes candidates concurrently
+    const candidates = await Candidate.find({ _id: { $in: candidateIds } });
+    const results: any[] = [];
+    const errors: any[] = [];
+
+    // Screen candidates in parallel batches of 4 for speed. If API rate-limit is
+    // hit, getMsBetweenCandidates() > 0 and we fall back to sequential with that gap.
+    const forcedGap = getMsBetweenCandidates();
+    const BATCH_SIZE = forcedGap > 0 ? 1 : 4;
+
+    for (let batchStart = 0; batchStart < candidates.length; batchStart += BATCH_SIZE) {
+      if (forcedGap > 0 && batchStart > 0) await sleep(forcedGap);
+      const batch = candidates.slice(batchStart, batchStart + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (candidate) => {
+          try {
+            console.log(`[Pipeline] Screening candidate ${candidate._id} (${candidate.firstName} ${candidate.lastName}) for stage ${stage.name}`);
+            const result = await screenCandidate(job, candidate, hrContext, stage.type);
+            console.log(`[Pipeline] Got result for ${candidate._id}: score=${result.overallScore}, rec=${result.recommendation}`);
+            const s = await ScreeningResult.findOneAndUpdate(
+              { jobId: req.params.jobId, candidateId: candidate._id },
+              { ...result, jobId: req.params.jobId, candidateId: candidate._id },
+              { upsert: true, new: true }
+            );
+            await Candidate.findByIdAndUpdate(candidate._id, { status: "screened" });
+            results.push(s);
+          } catch (e: any) {
+            console.error(`[Pipeline] Error screening candidate ${candidate._id}:`, e.message);
+            errors.push({ candidateId: candidate._id, error: e.message });
+          }
+        })
+      );
+    }
+
+    /* Rank results */
+    const sorted = results.sort((a, b) => b.overallScore - a.overallScore);
+    for (let i = 0; i < sorted.length; i++) {
+      await ScreeningResult.findByIdAndUpdate(sorted[i]._id, { rank: i + 1 });
+    }
+
+    const targetCount = Math.max(0, Math.floor(Number(stage.hrInputs?.targetCount) || 0));
+    const aiShortlist = pickAiShortlistIds(
+      sorted.map(s => ({
+        candidateId: s.candidateId,
+        recommendation: String(s.recommendation),
+        overallScore: Number(s.overallScore) || 0,
+      })),
+      targetCount
+    );
+
+    pipeline.stages[idx].shortlistedIds = aiShortlist;
+    pipeline.stages[idx].status = "done";
+    pipeline.stages[idx].ranAt = new Date();
+    await pipeline.save();
+
+    await applyStageShortlistOutcomes(
+      req.params.jobId,
+      idx,
+      stage.name,
+      candidateIds.map(id => new mongoose.Types.ObjectId(String(id))),
+      aiShortlist
+    );
+
+    const pipelineFresh = (await Pipeline.findOne({ jobId: req.params.jobId })) || pipeline;
+
     res.json({
       success: true,
-      data: { started: true, total: candidates.length },
+      data: {
+        screened: results.length,
+        errors,
+        total: candidateIds.length,
+        aiShortlistCount: aiShortlist.length,
+        targetCount,
+        pipeline: pipelineFresh,
+      },
     });
-
-    // Fire-and-forget: process in background without blocking this request
-    runScreeningBackground(jobId, idx, job, stage, candidates, hrContext, candidateIds).catch(
-      (e: any) => console.error("[Pipeline] Fatal background run error:", e.message)
-    );
   } catch (err: any) {
     console.error("[Pipeline] Run stage error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
-});
-
-/* GET /pipeline/:jobId/stage/:idx/run/status  — poll background screening progress */
-router.get("/:jobId/stage/:idx/run/status", async (req: AuthRequest, res: Response): Promise<void> => {
-  const key = runKey(req.params.jobId, parseInt(req.params.idx));
-  const status = stageRunMap.get(key);
-  if (!status) {
-    // Check if the stage is already done in DB (run completed before this poll started)
-    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
-    const idx = parseInt(req.params.idx);
-    if (pipeline && pipeline.stages[idx]?.status === "done") {
-      res.json({ success: true, data: { idle: true, alreadyDone: true } });
-    } else {
-      res.json({ success: true, data: { idle: true } });
-    }
-    return;
-  }
-  res.json({ success: true, data: status });
 });
 
 /* POST /pipeline/:jobId/stage/:idx/shortlist  — confirm shortlist and unlock next stage */
@@ -1270,173 +1146,111 @@ router.post("/:jobId/stage/:idx/interview/shortlist", async (req: AuthRequest, r
   }
 });
 
-/* ══════════════════════════════════════════════════════════
-   FINAL SELECTION — AI synthesises all pipeline stages for a candidate pool
-   ══════════════════════════════════════════════════════════ */
-
-/**
- * POST /pipeline/:jobId/final-selection
- * Body: { candidateIds?: string[] }  — if omitted, uses all shortlisted from last done stage
- *
- * For each candidate, gathers:
- *  - CV screening score / explanation
- *  - Deep review score
- *  - Practical assessment score + feedback
- *  - AI interview score + feedback
- * Then asks Gemini to synthesise a final recommendation with an overall conclusion.
- */
-router.post("/:jobId/final-selection", async (req: AuthRequest, res: Response): Promise<void> => {
+/* POST /pipeline/:jobId/final-conclusion — AI combines all stage data to produce a hiring conclusion */
+router.post("/:jobId/final-conclusion", async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { jobId } = req.params;
-    const pipeline = await Pipeline.findOne({ jobId });
-    const job = await Job.findById(jobId);
-    if (!pipeline || !job) { res.status(404).json({ success: false, error: "Pipeline or job not found." }); return; }
+    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
+    if (!pipeline) { res.status(404).json({ success: false, error: "Pipeline not found" }); return; }
+    const job = await Job.findById(req.params.jobId);
+    if (!job) { res.status(404).json({ success: false, error: "Job not found" }); return; }
 
-    // Determine candidate pool — explicit list or last done stage's shortlisted
-    let candidateIds: mongoose.Types.ObjectId[] = [];
-    if (Array.isArray(req.body?.candidateIds) && req.body.candidateIds.length > 0) {
-      candidateIds = req.body.candidateIds.map((id: string) => new mongoose.Types.ObjectId(id));
-    } else {
-      // Walk backward to find last stage with shortlisted candidates
-      const doneStages = pipeline.stages.filter(s => s.status === "done" && (s.shortlistedIds?.length || 0) > 0);
-      const lastDone = doneStages[doneStages.length - 1];
-      candidateIds = (lastDone?.shortlistedIds as mongoose.Types.ObjectId[]) || [];
-    }
+    // Collect finalist candidate IDs from the last non-final stage's shortlistedIds
+    const finalStageIdx = pipeline.stages.findIndex(s => s.type === "final");
+    const lastContentStageIdx = finalStageIdx > 0 ? finalStageIdx - 1 : pipeline.stages.length - 2;
+    const finalistIds: string[] = (
+      pipeline.stages[lastContentStageIdx]?.shortlistedIds || []
+    ).map(id => String(id));
 
-    if (candidateIds.length === 0) {
-      res.status(400).json({ success: false, error: "No candidates in the pool. Complete at least one pipeline stage first." });
+    if (!finalistIds.length) {
+      res.status(400).json({ success: false, error: "No finalists found. Shortlist candidates from the previous stages first." });
       return;
     }
 
-    const results: Array<{
-      candidateId: string;
-      candidateName: string;
-      email: string;
-      stagesData: string;
-      finalScore: number;
-      recommendation: string;
-      conclusion: string;
-      strengths: string[];
-      concerns: string[];
-      hiringDecision: "hire" | "maybe" | "pass";
-    }> = [];
+    // Load all data for each finalist: profile + screening results + practical + interview
+    const candidateSummaries: string[] = [];
 
-    for (const cid of candidateIds) {
-      const candidate = await Candidate.findById(cid).lean();
-      if (!candidate) continue;
-      const candName = `${(candidate as any).firstName || ""} ${(candidate as any).lastName || ""}`.trim();
-      const candEmail = (candidate as any).email || "";
+    for (const cid of finalistIds) {
+      const [cand, screeningResult, practicalSub, interviewSession] = await Promise.all([
+        Candidate.findById(cid).lean(),
+        ScreeningResult.findOne({ jobId: req.params.jobId, candidateId: cid }).lean(),
+        PracticalSubmission.findOne({ jobId: req.params.jobId, candidateId: cid }).sort({ submittedAt: -1 }).lean(),
+        InterviewSession.findOne({ jobId: req.params.jobId, candidateId: cid, status: "completed" }).sort({ completedAt: -1 }).lean(),
+      ]);
 
-      // Gather all stage data
-      const stageSummaries: string[] = [];
+      if (!cand) continue;
 
-      // CV screening / deep review results
-      const screenResult = await ScreeningResult.findOne({ jobId, candidateId: cid }).lean();
-      if (screenResult) {
-        stageSummaries.push(
-          `CV/Deep Screening:\n  Overall score: ${(screenResult as any).overallScore}/100\n  Recommendation: ${(screenResult as any).recommendation}\n  Strengths: ${((screenResult as any).strengths || []).join(", ")}\n  Gaps: ${((screenResult as any).gaps || []).join(", ")}\n  Explanation: ${String((screenResult as any).aiExplanation || "").slice(0, 600)}`
-        );
+      const name = `${(cand as any).firstName || ""} ${(cand as any).lastName || ""}`.trim();
+      const email = (cand as any).email || "";
+
+      let summary = `## Candidate: ${name} (${email})\n`;
+
+      if (screeningResult) {
+        summary += `**CV / Deep Review Score:** ${(screeningResult as any).overallScore}/100 | Recommendation: ${(screeningResult as any).recommendation}\n`;
+        summary += `AI Explanation: ${((screeningResult as any).aiExplanation || "").slice(0, 500)}\n`;
+        summary += `Strengths: ${((screeningResult as any).strengths || []).slice(0, 3).join(", ")}\n`;
+        summary += `Gaps: ${((screeningResult as any).gaps || []).slice(0, 3).join(", ")}\n`;
+      } else {
+        summary += `**CV / Deep Review:** No screening data available.\n`;
       }
 
-      // Practical assessment
-      const practical = await PracticalSubmission.findOne({ jobId, candidateId: cid, score: { $exists: true, $ne: null } })
-        .sort({ createdAt: -1 }).lean();
-      if (practical) {
-        stageSummaries.push(
-          `Practical Assessment:\n  Score: ${(practical as any).score}/100\n  Feedback: ${String((practical as any).feedback || "").slice(0, 600)}\n  Rank (within cohort): ${(practical as any).compareRank || "N/A"}`
-        );
+      if (practicalSub) {
+        summary += `**Practical Assessment Score:** ${(practicalSub as any).score != null ? `${(practicalSub as any).score}/100` : "Not graded yet"}\n`;
+        if ((practicalSub as any).feedback) summary += `Practical Feedback: ${String((practicalSub as any).feedback).slice(0, 400)}\n`;
+        if ((practicalSub as any).compareRank) summary += `Practical Rank: #${(practicalSub as any).compareRank}\n`;
+      } else {
+        summary += `**Practical Assessment:** No submission.\n`;
       }
 
-      // AI interview
-      const interview = await InterviewSession.findOne({ jobId, candidateId: cid, status: "completed" })
-        .sort({ completedAt: -1 }).lean();
-      if (interview) {
-        const sc = (interview as any).score;
-        if (sc) {
-          stageSummaries.push(
-            `AI Video Interview:\n  Overall: ${sc.overall}/100 | Confidence: ${sc.confidence} | Communication: ${sc.communication} | Accuracy: ${sc.accuracy} | Attitude: ${sc.attitude}\n  Feedback: ${String(sc.feedback || "").slice(0, 600)}\n  Strengths: ${(sc.strengths || []).join(", ")}\n  Improvements: ${(sc.improvements || []).join(", ")}`
-          );
-        } else {
-          stageSummaries.push(`AI Video Interview: Completed (score not yet available)`);
+      if (interviewSession) {
+        summary += `**AI Interview Score:** ${(interviewSession as any).score != null ? `${(interviewSession as any).score}/100` : "Pending grading"}\n`;
+        const transcript: Array<{ speaker: string; text: string }> = (interviewSession as any).transcript || [];
+        const candidateTurns = transcript.filter(t => t.speaker === "candidate").slice(-3);
+        if (candidateTurns.length) {
+          summary += `Last candidate responses (excerpt): ${candidateTurns.map(t => t.text.slice(0, 200)).join(" | ")}\n`;
         }
+      } else {
+        summary += `**AI Interview:** Not completed.\n`;
       }
 
-      if (stageSummaries.length === 0) {
-        results.push({
-          candidateId: String(cid),
-          candidateName: candName,
-          email: candEmail,
-          stagesData: "No stage data available",
-          finalScore: 0,
-          recommendation: "Insufficient data",
-          conclusion: "This candidate has no recorded stage data to evaluate.",
-          strengths: [],
-          concerns: ["No data from pipeline stages"],
-          hiringDecision: "pass",
-        });
-        continue;
-      }
-
-      const stagesData = stageSummaries.join("\n\n");
-      const prompt = `You are a senior hiring manager making the final hiring decision for: ${job.title} (${(job as any).department || "N/A"}).
-
-Required skills: ${((job as any).requiredSkills || []).join(", ")}
-Experience required: ${(job as any).experienceYears || 0}+ years
-
-Candidate: ${candName}
-
-Performance across all hiring pipeline stages:
-${stagesData}
-
-Synthesise ALL the above data holistically. This is the final decision — consider the complete picture.
-
-Return ONLY valid JSON:
-{
-  "finalScore": <number 0-100 — weighted holistic score across all stages>,
-  "recommendation": "<one clear sentence summarising the candidate's suitability>",
-  "conclusion": "<2-3 sentences: holistic synthesis — what stands out across ALL stages, patterns noticed, why they should/should not be hired>",
-  "strengths": ["<key strength 1>", "<key strength 2>", "<key strength 3>"],
-  "concerns": ["<concern 1>", "<concern 2>"],
-  "hiringDecision": "hire"|"maybe"|"pass"
-}`;
-
-      try {
-        const raw = await geminiChatText(prompt, { maxRetries: 2, maxOutputTokens: 800, jsonMode: true });
-        const parsed = JSON.parse(raw);
-        results.push({
-          candidateId: String(cid),
-          candidateName: candName,
-          email: candEmail,
-          stagesData,
-          finalScore: Math.max(0, Math.min(100, Number(parsed.finalScore) || 0)),
-          recommendation: String(parsed.recommendation || ""),
-          conclusion: String(parsed.conclusion || ""),
-          strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
-          concerns: Array.isArray(parsed.concerns) ? parsed.concerns.map(String) : [],
-          hiringDecision: ["hire", "maybe", "pass"].includes(parsed.hiringDecision) ? parsed.hiringDecision : "maybe",
-        });
-      } catch {
-        results.push({
-          candidateId: String(cid),
-          candidateName: candName,
-          email: candEmail,
-          stagesData,
-          finalScore: 0,
-          recommendation: "AI synthesis failed — review manually.",
-          conclusion: "Could not generate AI conclusion for this candidate.",
-          strengths: [],
-          concerns: ["AI synthesis error"],
-          hiringDecision: "maybe",
-        });
-      }
+      candidateSummaries.push(summary);
     }
 
-    // Sort by finalScore descending
-    results.sort((a, b) => b.finalScore - a.finalScore);
+    if (!candidateSummaries.length) {
+      res.status(400).json({ success: false, error: "Could not load candidate data for final conclusion." });
+      return;
+    }
 
-    res.json({ success: true, data: { results, total: results.length } });
+    const { geminiChatText } = await import("../config/gemini");
+    const prompt = `You are a senior talent acquisition advisor. Generate a comprehensive FINAL SELECTION REPORT for the ${job.title} position.
+
+You have ${candidateSummaries.length} finalist candidates who passed all screening stages. Analyze all available data — CV screening scores, practical assessment results, and AI interview performance — then produce a clear hiring recommendation.
+
+---
+${candidateSummaries.join("\n---\n")}
+---
+
+Write a structured report with these sections:
+1. **Executive Summary** (2-3 sentences on the overall candidate pool quality)
+2. **Candidate Rankings** (rank each finalist 1st, 2nd, etc. with a 1-2 sentence justification citing their specific scores and standout qualities)
+3. **Top Recommendation** (who to hire and why, citing specific evidence across all stages)
+4. **Risks & Considerations** (any red flags, concerns, or gaps in the top candidate that HR should be aware of)
+5. **Conclusion** (final hiring action recommendation)
+
+Be data-driven, cite specific scores and observations, and be decisive.`;
+
+    const conclusion = await geminiChatText(prompt, { maxRetries: 3 });
+
+    pipeline.finalConclusion = conclusion;
+    pipeline.markModified("finalConclusion");
+    if (finalStageIdx >= 0) {
+      pipeline.stages[finalStageIdx].status = "done";
+      pipeline.stages[finalStageIdx].candidateIds = finalistIds.map(id => new mongoose.Types.ObjectId(id));
+    }
+    await pipeline.save();
+
+    res.json({ success: true, data: { conclusion, pipeline } });
   } catch (err: any) {
-    console.error("[pipeline] final-selection:", err);
+    console.error("[pipeline] final-conclusion:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -52,6 +52,7 @@ export interface IPipeline extends Document {
   jobId: mongoose.Types.ObjectId;
   currentStageIndex: number;
   stages: IPipelineStage[];
+  finalConclusion?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -204,6 +205,7 @@ const pipelineSchema = new Schema<IPipeline>(
     jobId: { type: Schema.Types.ObjectId, ref: "Job", required: true, unique: true },
     currentStageIndex: { type: Number, default: 0 },
     stages: { type: [stageSchema], default: () => DEFAULT_STAGES.map(s => ({ ...s })) },
+    finalConclusion: { type: String, default: "" },
   },
   { timestamps: true }
 );

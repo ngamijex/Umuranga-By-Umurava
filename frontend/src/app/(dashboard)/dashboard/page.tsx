@@ -1,5 +1,5 @@
-﻿"use client";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+"use client";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import api, { publicApiBaseUrl } from "@/lib/api";
 import {
@@ -115,7 +115,7 @@ interface IPipelineStage {
   emailLog?: IStageEmailLog[];
   assessmentDefinition?: IPracticalAssessmentDefinition;
 }
-interface IPipeline { _id: string; jobId: string; currentStageIndex: number; stages: IPipelineStage[]; createdAt: string; updatedAt: string; }
+interface IPipeline { _id: string; jobId: string; currentStageIndex: number; stages: IPipelineStage[]; finalConclusion?: string; createdAt: string; updatedAt: string; }
 
 /* ── Helpers ────────────────────────────────────────────── */
 const scoreColor = (s: number) => s >= 80 ? "#22c55e" : s >= 60 ? "#f59e0b" : "#ef4444";
@@ -1304,9 +1304,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [screening, setScreening] = useState(false);
   const [screenMsg, setScreenMsg] = useState("");
   const [addMode, setAddMode] = useState<"form" | "json" | "csv" | "paste" | "zip" | null>(null);
-  const [jsonText, setJsonText] = useState(""); const [jsonErr, setJsonErr] = useState(""); const [jsonUploading, setJsonUploading] = useState(false);
+  const [jsonText, setJsonText] = useState(""); const [jsonErr, setJsonErr] = useState("");
   const [csvRows, setCsvRows] = useState<any[]>([]); const [csvErr, setCsvErr] = useState(""); const [csvUploading, setCsvUploading] = useState(false);
-  const [pasteText, setPasteText] = useState(""); const [pasteErr, setPasteErr] = useState(""); const [pasteUploading, setPasteUploading] = useState(false);
+  const [pasteText, setPasteText] = useState(""); const [pasteErr, setPasteErr] = useState("");
   const [zipFile, setZipFile] = useState<File | null>(null); const [zipUploading, setZipUploading] = useState(false); const [zipResult, setZipResult] = useState<any>(null); const [zipErr, setZipErr] = useState("");
   const [addForm, setAddForm] = useState({ firstName: "", lastName: "", email: "", headline: "", location: "", skills: "", skillLevel: "Intermediate", role: "", company: "", degree: "Bachelor's", institution: "", fieldOfStudy: "", availStatus: "Available", availType: "Full-time", linkedin: "", github: "" });
   const [saving, setSaving] = useState(false);
@@ -1324,8 +1324,6 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [pipelineLoading, setPipelineLoading] = useState(false);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineMsg, setPipelineMsg] = useState("");
-  const [stageRunProgress, setStageRunProgress] = useState<{ processed: number; total: number; failed: number } | null>(null);
-  const runPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [unsavedHr, setUnsavedHr] = useState<Record<number, Partial<IHrInputs>>>({});
   const [stageShortlist, setStageShortlist] = useState<Record<number, string[]>>({});
@@ -1345,6 +1343,8 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [practicalSubs, setPracticalSubs] = useState<Array<Record<string, unknown>>>([]);
   const [practicalSubsLoading, setPracticalSubsLoading] = useState(false);
   const [gradingPractical, setGradingPractical] = useState(false);
+  const [finalBusy, setFinalBusy] = useState(false);
+  const [finalConclusion, setFinalConclusion] = useState<string>("");
 
   /* AI Interview state */
   const [interviewSessions, setInterviewSessions] = useState<Array<Record<string, unknown>>>([]);
@@ -1359,12 +1359,6 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [assessmentAiHint, setAssessmentAiHint] = useState("");
   const [assessmentGenBusy, setAssessmentGenBusy] = useState(false);
   const [videoModal, setVideoModal] = useState<{ url: string; name: string; transcript: any[] } | null>(null);
-
-  /* Final selection state */
-  const [finalSelResults, setFinalSelResults] = useState<any[]>([]);
-  const [finalSelLoading, setFinalSelLoading] = useState(false);
-  const [finalSelMsg, setFinalSelMsg] = useState("");
-  const [finalSelExpanded, setFinalSelExpanded] = useState<string | null>(null);
 
   /* Rollback state */
   const [rollbackConfirmIdx, setRollbackConfirmIdx] = useState<number | null>(null);
@@ -1384,6 +1378,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
         const shortlistMap: Record<number, string[]> = {};
         data.data.stages.forEach((s: IPipelineStage, idx: number) => { shortlistMap[idx] = s.shortlistedIds || []; });
         setStageShortlist(shortlistMap);
+        if (data.data.finalConclusion) setFinalConclusion(data.data.finalConclusion);
       }
     } catch { /* ignore */ }
     finally { setPipelineLoading(false); }
@@ -1638,24 +1633,6 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     finally { setGradingSubId(null); }
   }, [selJob, pipeline, screeningViewIdx]);
 
-  const runFinalSelection = useCallback(async () => {
-    if (!selJob) return;
-    setFinalSelLoading(true);
-    setFinalSelMsg("");
-    try {
-      const { data } = await api.post(`/pipeline/${selJob._id}/final-selection`);
-      if (data.success) {
-        setFinalSelResults(data.data.results || []);
-        setFinalSelMsg(`AI synthesised ${data.data.total} candidate(s) across all pipeline stages.`);
-        setTimeout(() => setFinalSelMsg(""), 6000);
-      }
-    } catch (e: any) {
-      alert(e.response?.data?.error || e.message);
-    } finally {
-      setFinalSelLoading(false);
-    }
-  }, [selJob]);
-
   const confirmPracticalShortlist = useCallback(async () => {
     if (!selJob || !pipeline || practicalPickIds.size === 0) return;
     try {
@@ -1806,7 +1783,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   };
 
   const bulkUpload = async () => {
-    setJsonErr(""); setJsonUploading(true);
+    setJsonErr("");
     try {
       const parsed = JSON.parse(jsonText);
       const arr = extractCandidateArray(parsed);
@@ -1814,7 +1791,6 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       const { data } = await api.get(`/candidates?jobId=${selJob!._id}`);
       setCandidates(data.data); setAddMode(null); setJsonText("");
     } catch (e: any) { setJsonErr(e.response?.data?.error || "Invalid JSON or server error"); }
-    finally { setJsonUploading(false); }
   };
 
   const buildTalentRow = (r: Record<string, string>) => ({
@@ -1865,13 +1841,12 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const pasteUpload = async () => {
     const rows = parsePaste(pasteText);
     if (!rows.length) { setPasteErr("No valid rows. Use: Name, Email, Role, Skills (;-sep), Yrs, Education"); return; }
-    setPasteErr(""); setPasteUploading(true);
+    setPasteErr("");
     try {
       await api.post("/candidates/bulk", { candidates: rows, jobId: selJob!._id });
       const { data } = await api.get(`/candidates?jobId=${selJob!._id}`);
       setCandidates(data.data); setAddMode(null); setPasteText("");
     } catch (e: any) { setPasteErr(e.response?.data?.error || "Upload failed"); }
-    finally { setPasteUploading(false); }
   };
 
   const zipUpload = async () => {
@@ -1907,10 +1882,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     } catch (e: any) { setZipErr(e.message || "Upload failed"); } finally { setZipUploading(false); }
   };
 
-  const getCand = (r: ScreeningResult): Candidate | null => {
-    if (!r.candidateId) return null;
-    return typeof r.candidateId === "object" ? r.candidateId as Candidate : candidates.find(c => c._id === r.candidateId) || null;
-  };
+  const getCand = (r: ScreeningResult): Candidate | null => typeof r.candidateId === "object" ? r.candidateId as Candidate : candidates.find(c => c._id === r.candidateId) || null;
   const availColor = (s?: string) => s === "Available" ? { bg: "#dcfce7", color: "#16a34a" } : s === "Open to Opportunities" ? { bg: "#fef9c3", color: "#b45309" } : { bg: "#fee2e2", color: "#dc2626" };
 
   /** Per-step pipeline status: first step vs later steps, who advanced vs “not selected” at a given step. */
@@ -2137,10 +2109,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       header: "Actions",
       enableColumnFilter: false,
       cell: ({ row: { original: c } }) => {
-        const r = results.find(x => {
-          if (!x.candidateId) return false;
-          return (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id;
-        });
+        const r = results.find(x => (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id);
         return (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
             <button
@@ -2353,15 +2322,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       <input type="file" accept=".csv,text/csv" onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = ev => { const rows = parseCSV(ev.target?.result as string); setCsvRows(rows); setCsvErr(rows.length ? "" : "No valid rows found."); }; reader.readAsText(file); }} />
                       {csvRows.length > 0 && <div style={{ background: "#f0fdf4", borderRadius: "8px", padding: "10px 12px", border: "1px solid #86efac" }}><p style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600, margin: "0 0 4px" }}>{csvRows.length} candidates ready</p>{csvRows.slice(0, 3).map((r: any, i: number) => <p key={i} style={{ fontSize: "0.7rem", color: "#374151", margin: 0 }}>{r.firstName} {r.lastName} · {r.email}</p>)}{csvRows.length > 3 && <p style={{ fontSize: "0.68rem", color: "#94a3b8", margin: 0 }}>+{csvRows.length - 3} more…</p>}</div>}
                       {csvErr && <p style={{ color: "#dc2626", fontSize: "0.75rem", margin: 0 }}>{csvErr}</p>}
-                      {csvUploading && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "8px", background: "#f0fdf4", border: "1px solid #86efac" }}>
-                          <Loader2 style={{ width: "15px", height: "15px", color: "#16a34a", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-                          <span style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 600 }}>Uploading {csvRows.length} candidates… please wait.</span>
-                        </div>
-                      )}
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button onClick={() => { setAddMode(null); setCsvRows([]); setCsvErr(""); }} disabled={csvUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: csvUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600, opacity: csvUploading ? 0.5 : 1 }}>Cancel</button>
-                        <button onClick={csvUpload} disabled={!csvRows.length || csvUploading} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: "#16a34a", color: "#fff", border: "none", cursor: !csvRows.length || csvUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !csvRows.length ? 0.5 : 1 }}>{csvUploading && <Loader2 style={{ width: "13px", height: "13px", animation: "spin 1s linear infinite" }} />}{csvUploading ? "Uploading…" : `Import ${csvRows.length || ""}`}</button>
+                        <button onClick={() => { setAddMode(null); setCsvRows([]); setCsvErr(""); }} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>Cancel</button>
+                        <button onClick={csvUpload} disabled={!csvRows.length || csvUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#16a34a", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !csvRows.length ? 0.5 : 1 }}>{csvUploading ? "Uploading…" : `Import ${csvRows.length || ""}`}</button>
                       </div>
                     </div>
                   )}
@@ -2369,35 +2332,23 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>Paste from spreadsheet</p>
                       <p style={{ fontSize: "0.68rem", color: "#94a3b8", margin: 0 }}>Columns: <code style={{ background: "#f1f5f9", padding: "1px 5px", borderRadius: "4px" }}>FirstName, LastName, Email, Headline, Location, Skills(;sep), Role, Company</code></p>
-                      <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={5} disabled={pasteUploading} placeholder={"Jane\tDoe\tjane@acme.com\tBackend Engineer\tKigali,Rwanda\tPython;SQL\tEngineer\tAcme"} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d8b4fe", fontSize: "0.78rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical", opacity: pasteUploading ? 0.5 : 1 }} />
+                      <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} rows={5} placeholder={"Jane\tDoe\tjane@acme.com\tBackend Engineer\tKigali,Rwanda\tPython;SQL\tEngineer\tAcme"} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #d8b4fe", fontSize: "0.78rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical" }} />
                       {pasteErr && <p style={{ color: "#dc2626", fontSize: "0.75rem", margin: 0 }}>{pasteErr}</p>}
-                      {pasteUploading && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "8px", background: "#f5f3ff", border: "1px solid #d8b4fe" }}>
-                          <Loader2 style={{ width: "15px", height: "15px", color: "#7c3aed", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-                          <span style={{ fontSize: "0.75rem", color: "#6d28d9", fontWeight: 600 }}>Uploading candidates…</span>
-                        </div>
-                      )}
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button onClick={() => { setAddMode(null); setPasteText(""); setPasteErr(""); }} disabled={pasteUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: pasteUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600, opacity: pasteUploading ? 0.5 : 1 }}>Cancel</button>
-                        <button onClick={pasteUpload} disabled={pasteUploading || !pasteText.trim()} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: "#7c3aed", color: "#fff", border: "none", cursor: pasteUploading || !pasteText.trim() ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !pasteText.trim() ? 0.5 : 1 }}>{pasteUploading && <Loader2 style={{ width: "13px", height: "13px", animation: "spin 1s linear infinite" }} />}{pasteUploading ? "Uploading…" : "Import"}</button>
+                        <button onClick={() => { setAddMode(null); setPasteText(""); setPasteErr(""); }} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>Cancel</button>
+                        <button onClick={pasteUpload} style={{ padding: "9px 20px", borderRadius: "8px", background: "#7c3aed", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>Import</button>
                       </div>
                     </div>
                   )}
                   {addMode === "json" && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>Paste or load JSON</p>
-                      <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", border: "1px dashed #fed7aa", cursor: jsonUploading ? "not-allowed" : "pointer", fontSize: "0.75rem", color: "#ea580c", fontWeight: 600, width: "fit-content", opacity: jsonUploading ? 0.5 : 1 }}><Upload style={{ width: "13px", height: "13px" }} />Load .json file<input type="file" accept=".json" disabled={jsonUploading} style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setJsonText(ev.target?.result as string); r.readAsText(f); }} /></label>
-                      <textarea value={jsonText} onChange={e => setJsonText(e.target.value)} rows={6} disabled={jsonUploading} placeholder={'{"applicants": [{"firstName":"...","email":"...",...}]}'} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #fed7aa", fontSize: "0.75rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical", opacity: jsonUploading ? 0.5 : 1 }} />
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "8px", border: "1px dashed #fed7aa", cursor: "pointer", fontSize: "0.75rem", color: "#ea580c", fontWeight: 600, width: "fit-content" }}><Upload style={{ width: "13px", height: "13px" }} />Load .json file<input type="file" accept=".json" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = ev => setJsonText(ev.target?.result as string); r.readAsText(f); }} /></label>
+                      <textarea value={jsonText} onChange={e => setJsonText(e.target.value)} rows={6} placeholder={'{"applicants": [{"firstName":"...","email":"...",...}]}'} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #fed7aa", fontSize: "0.75rem", outline: "none", fontFamily: "monospace", boxSizing: "border-box", resize: "vertical" }} />
                       {jsonErr && <p style={{ color: "#dc2626", fontSize: "0.75rem", margin: 0 }}>{jsonErr}</p>}
-                      {jsonUploading && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "8px", background: "#fff7ed", border: "1px solid #fed7aa" }}>
-                          <Loader2 style={{ width: "15px", height: "15px", color: "#ea580c", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-                          <span style={{ fontSize: "0.75rem", color: "#c2410c", fontWeight: 600 }}>Uploading candidates… this may take a moment for large files.</span>
-                        </div>
-                      )}
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button onClick={() => { setAddMode(null); setJsonText(""); setJsonErr(""); }} disabled={jsonUploading} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: jsonUploading ? "not-allowed" : "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600, opacity: jsonUploading ? 0.5 : 1 }}>Cancel</button>
-                        <button onClick={bulkUpload} disabled={jsonUploading || !jsonText.trim()} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: jsonUploading ? "#f97316" : "#ea580c", color: "#fff", border: "none", cursor: jsonUploading || !jsonText.trim() ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 600, opacity: !jsonText.trim() ? 0.5 : 1 }}>{jsonUploading && <Loader2 style={{ width: "13px", height: "13px", animation: "spin 1s linear infinite" }} />}{jsonUploading ? "Uploading…" : "Upload"}</button>
+                        <button onClick={() => { setAddMode(null); setJsonText(""); setJsonErr(""); }} style={{ padding: "9px 20px", borderRadius: "8px", background: "#f1f5f9", border: "none", cursor: "pointer", fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>Cancel</button>
+                        <button onClick={bulkUpload} style={{ padding: "9px 20px", borderRadius: "8px", background: "#ea580c", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>Upload</button>
                       </div>
                     </div>
                   )}
@@ -2545,11 +2496,8 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                         <tbody>
                           {table.getRowModel().rows.flatMap(row => {
                             const c = row.original;
-        const r = results.find(x => {
-                              if (!x.candidateId) return false;
-                              return (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id;
-                            });
-            const rows = [
+                            const r = results.find(x => (typeof x.candidateId === "object" ? (x.candidateId as Candidate)._id : x.candidateId) === c._id);
+                            const rows = [
                               <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9", background: editCand?._id === c._id ? "#fffbeb" : "transparent" }}>
                                 {row.getVisibleCells().map(cell => (
                                   <td key={cell.id} style={{ padding: "10px 14px", fontSize: "0.82rem", color: "#374151", verticalAlign: "middle" }}>
@@ -2657,79 +2605,32 @@ function HireTab({ jobs }: { jobs: Job[] }) {
             } catch { alert("Failed to save HR guidance"); }
           };
 
-          const stopRunPolling = () => {
-            if (runPollingRef.current) { clearInterval(runPollingRef.current); runPollingRef.current = null; }
-          };
-
-          const finishRun = async (statusData: any, idx: number) => {
-            stopRunPolling();
-            setStageRunProgress(null);
-            // Re-fetch pipeline + results after background job finished
-            const [pipelineRes, newResults, candRes] = await Promise.all([
-              api.get(`/pipeline/${selJob!._id}`),
-              api.get(`/screening/results/${selJob!._id}`),
-              api.get(`/candidates?jobId=${selJob!._id}`),
-            ]);
-            if (pipelineRes.data.success) {
-              const freshPipeline: IPipeline = pipelineRes.data.data;
-              setPipeline(freshPipeline);
-              const shortlistIds = (freshPipeline.stages[idx]?.shortlistedIds || []).map(String);
-              setStageShortlist(prev => ({ ...prev, [idx]: shortlistIds }));
-              const tc = freshPipeline.stages[idx]?.hrInputs?.targetCount ?? 0;
-              const n = shortlistIds.length;
-              const failedNote = (statusData?.failed ?? 0) > 0 ? ` (${statusData.failed} failed — check console)` : "";
-              setPipelineMsg(
-                tc > 0
-                  ? `Done — AI pre-selected ${n} of ${statusData?.total ?? "?"} candidate(s) for shortlist (target ${tc}).${failedNote} Review & confirm.`
-                  : `Done — screened ${statusData?.processed ?? "?"}/${statusData?.total ?? "?"} candidates.${failedNote} Select your shortlist and confirm.`
-              );
-            }
-            setResults(newResults.data.data);
-            setCandidates(candRes.data.data);
-            setPipelineRunning(false);
-            setTimeout(() => setPipelineMsg(""), 8000);
-          };
-
           const runStage = async (idx: number) => {
             await saveHrInputs(idx);
-            stopRunPolling();
-            setPipelineRunning(true);
-            setStageRunProgress(null);
-            setPipelineMsg("Starting AI screening…");
+            setPipelineRunning(true); setPipelineMsg("Running AI screening for this stage…");
             try {
               const { data } = await api.post(`/pipeline/${selJob!._id}/stage/${idx}/run`);
-              if (!data.success) { setPipelineMsg("Error starting run."); setPipelineRunning(false); return; }
-
-              if (data.data.alreadyRunning) {
-                setPipelineMsg(`Run already in progress (${data.data.total} candidates)…`);
-              } else {
-                setStageRunProgress({ processed: 0, total: data.data.total, failed: 0 });
-                setPipelineMsg(`Screening ${data.data.total} candidates…`);
+              if (data.success) {
+                setPipeline(data.data.pipeline);
+                const [newResults, candRes] = await Promise.all([
+                  api.get(`/screening/results/${selJob!._id}`),
+                  api.get(`/candidates?jobId=${selJob!._id}`),
+                ]);
+                setResults(newResults.data.data);
+                setCandidates(candRes.data.data);
+                // Server persists AI shortlist (target shortlist count + tier ranking); sync checkboxes
+                const shortlistIds = (data.data.pipeline?.stages[idx]?.shortlistedIds || []).map((id: string) => String(id));
+                setStageShortlist(prev => ({ ...prev, [idx]: shortlistIds }));
+                const tc = data.data.targetCount ?? data.data.pipeline?.stages[idx]?.hrInputs?.targetCount;
+                const n = data.data.aiShortlistCount ?? shortlistIds.length;
+                setPipelineMsg(
+                  tc > 0
+                    ? `Stage complete — AI pre-selected ${n} candidate(s) for shortlist (target ${tc}). Review & confirm.`
+                    : "Stage complete! Set a target shortlist count before running to auto-tick the best matches, or select manually."
+                );
               }
-
-              // Poll /run/status every 2.5s
-              runPollingRef.current = setInterval(async () => {
-                try {
-                  const { data: s } = await api.get(`/pipeline/${selJob!._id}/stage/${idx}/run/status`);
-                  if (!s.success) return;
-                  const st = s.data;
-                  if (st.idle && st.alreadyDone) {
-                    await finishRun(null, idx);
-                    return;
-                  }
-                  if (st.idle) return;
-                  setStageRunProgress({ processed: st.processed, total: st.total, failed: st.failed });
-                  setPipelineMsg(`Screening ${st.processed}/${st.total} candidates…${st.failed > 0 ? ` (${st.failed} failed)` : ""}`);
-                  if (st.done) { await finishRun(st, idx); }
-                } catch { /* transient network error — keep polling */ }
-              }, 2500);
-
-            } catch (e: any) {
-              setPipelineMsg("Error: " + (e.response?.data?.error || e.message));
-              setPipelineRunning(false);
-              setStageRunProgress(null);
-              setTimeout(() => setPipelineMsg(""), 5000);
-            }
+            } catch (e: any) { setPipelineMsg("Error: " + (e.response?.data?.error || e.message)); }
+            finally { setPipelineRunning(false); setTimeout(() => setPipelineMsg(""), 5000); }
           };
 
           const confirmShortlist = async (idx: number) => {
@@ -2761,31 +2662,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                 <Layers style={{ width: "18px", height: "18px", color: "#2b72f0" }} />
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "#2b72f0", margin: 0 }}>AI Screening Playground</h3>
                 {pipelineLoading && <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} />}
-                {pipelineMsg && <span style={{ fontSize: "0.75rem", color: pipelineRunning ? "#2b72f0" : "#16a34a", fontWeight: 600 }}>{pipelineMsg}</span>}
-              {stageRunProgress && (() => {
-                const pct = stageRunProgress.total > 0 ? Math.round((stageRunProgress.processed / stageRunProgress.total) * 100) : 0;
-                // ETA: based on elapsed time and remaining candidates
-                const startedAt = (stageRunProgress as any).startedAt;
-                let etaStr = "";
-                if (startedAt && stageRunProgress.processed > 0 && pct < 100) {
-                  const elapsedMs = Date.now() - new Date(startedAt).getTime();
-                  const msPerCandidate = elapsedMs / stageRunProgress.processed;
-                  const remaining = stageRunProgress.total - stageRunProgress.processed;
-                  const etaSec = Math.round((msPerCandidate * remaining) / 1000);
-                  etaStr = etaSec > 60 ? ` · ~${Math.round(etaSec / 60)}m left` : ` · ~${etaSec}s left`;
-                }
-                return (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: 160, height: 7, borderRadius: 4, background: "#e2e8f0", overflow: "hidden" }}>
-                      <div style={{ height: "100%", borderRadius: 4, background: "#2b72f0", width: `${pct}%`, transition: "width 0.5s ease" }} />
-                    </div>
-                    <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>
-                      {stageRunProgress.processed}/{stageRunProgress.total} ({pct}%){etaStr}
-                      {stageRunProgress.failed > 0 && <span style={{ color: "#ef4444" }}> · {stageRunProgress.failed} failed</span>}
-                    </span>
-                  </div>
-                );
-              })()}
+                {pipelineMsg && <span style={{ fontSize: "0.75rem", color: "#16a34a" }}>{pipelineMsg}</span>}
                 {rollbackMsg && !rollbackConfirmIdx && <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600 }}>{rollbackMsg}</span>}
               </div>
 
@@ -2857,8 +2734,8 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     </div>
                   )}
 
-                  {/* HR Inputs Form - editable only for current stage, hidden for practical and ai_interview */}
-                  {activeStage.type !== "practical" && activeStage.type !== "ai_interview" && <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", background: isPastStage ? "#f8fafc" : "#fafafa" }}>
+                  {/* HR Inputs Form - editable only for current stage, hidden for practical, ai_interview, and final */}
+                  {activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", background: isPastStage ? "#f8fafc" : "#fafafa" }}>
                     {isPastStage ? (
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#64748b" }}>
                         <Lock style={{ width: "14px", height: "14px" }} />
@@ -2899,12 +2776,12 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                   <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
                     <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
                       {isPastStage ? "Stage completed and archived" :
-                       activeStage.type === "practical" || activeStage.type === "ai_interview" ? "" :
+                       activeStage.type === "practical" || activeStage.type === "ai_interview" || activeStage.type === "final" ? "" :
                        activeStage.status === "pending" ? `Ready to screen ${candidatesInStage.length} candidates` :
                        activeStage.status === "done" ? `${activeStage.shortlistedIds?.length || 0} candidates shortlisted — confirm to proceed` : "Screening in progress…"}
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
-                      {isCurrentStage && activeStage.status === "pending" && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && (
+                      {isCurrentStage && activeStage.status === "pending" && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && (
                         <button onClick={() => runStage(viewingStageIdx)} disabled={pipelineRunning || candidatesInStage.length === 0} style={{ padding: "8px 16px", borderRadius: "8px", background: pipelineRunning || candidatesInStage.length === 0 ? "#94a3b8" : "#2b72f0", color: "#fff", border: "none", fontSize: "0.78rem", fontWeight: 700, cursor: pipelineRunning || candidatesInStage.length === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
                           {pipelineRunning ? <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} /> : <PlayCircle style={{ width: "14px", height: "14px" }} />}
                           {pipelineRunning ? "Running…" : "Run This Stage"}
@@ -2921,8 +2798,53 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     </div>
                   </div>
 
-                  {/* Results / Shortlist Table — AI-screened stages only (not practical or ai_interview) */}
-                  {activeStage.status === "done" && sortedStageResults.length > 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && (
+                  {/* ── FINAL SELECTION stage UI ── */}
+                  {activeStage.type === "final" && (
+                    <div style={{ padding: "24px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                        <Sparkles style={{ width: "18px", height: "18px", color: "#7c3aed" }} />
+                        <h5 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "#0f172a" }}>AI Final Selection Report</h5>
+                      </div>
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "0 0 16px", lineHeight: 1.6 }}>
+                        The AI will combine all screening stages — CV review, deep profile, practical assessment scores, and AI interview performance — to produce a comprehensive hiring recommendation for your finalists.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          if (!selJob) return;
+                          setFinalBusy(true);
+                          try {
+                            const { data } = await api.post(`/pipeline/${selJob._id}/final-conclusion`);
+                            if (data.success) {
+                              setFinalConclusion(data.data.conclusion);
+                              setPipeline(data.data.pipeline);
+                            }
+                          } catch (e: any) {
+                            alert(e.response?.data?.error || "Failed to generate conclusion.");
+                          } finally {
+                            setFinalBusy(false);
+                          }
+                        }}
+                        disabled={finalBusy}
+                        style={{ padding: "10px 20px", borderRadius: "10px", background: finalBusy ? "#94a3b8" : "#7c3aed", color: "#fff", border: "none", fontSize: "0.82rem", fontWeight: 700, cursor: finalBusy ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}
+                      >
+                        {finalBusy ? <Loader2 style={{ width: "16px", height: "16px", animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: "16px", height: "16px" }} />}
+                        {finalBusy ? "Generating AI Report…" : finalConclusion ? "Regenerate AI Report" : "Generate AI Final Report"}
+                      </button>
+
+                      {finalConclusion && (
+                        <div style={{ background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "12px", padding: "20px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                            <CheckCircle style={{ width: "16px", height: "16px", color: "#7c3aed" }} />
+                            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#7c3aed" }}>AI Hiring Report</span>
+                          </div>
+                          <pre style={{ margin: 0, fontSize: "0.82rem", color: "#1e1b4b", lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{finalConclusion}</pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Results / Shortlist Table — AI-screened stages only (not practical, ai_interview, or final) */}
+                  {activeStage.status === "done" && sortedStageResults.length > 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && (
                     <div style={{ padding: "16px 20px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                         <h5 style={{ margin: 0, fontSize: "0.85rem", fontWeight: 700, color: "#0f172a" }}>
@@ -3589,80 +3511,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     </div>
                   )}
 
-                  {/* ── Final stage (Final Selection) ── */}
-                  {activeStage.type === "final" && (
-                    <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "12px 14px", borderRadius: "8px", background: "#faf5ff", border: "1px solid #e9d5ff" }}>
-                        <Sparkles style={{ width: "14px", height: "14px", color: "#7c3aed", flexShrink: 0, marginTop: "2px" }} />
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: "0 0 4px", fontSize: "0.78rem", fontWeight: 700, color: "#4c1d95" }}>Final AI Selection</p>
-                          <p style={{ margin: 0, fontSize: "0.72rem", color: "#7c3aed", lineHeight: 1.5 }}>
-                            The AI synthesises every screening stage — CV review, deep review, practical assessment, and AI interview — to produce a holistic final verdict for each candidate.
-                          </p>
-                        </div>
-                        <button onClick={runFinalSelection} disabled={finalSelLoading} style={{ padding: "6px 14px", borderRadius: "6px", background: finalSelLoading ? "#94a3b8" : "#7c3aed", color: "#fff", border: "none", fontSize: "0.72rem", fontWeight: 700, cursor: finalSelLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                          {finalSelLoading ? <><Loader2 style={{ width: "12px", height: "12px", animation: "spin 1s linear infinite" }} /> Analysing…</> : <><Sparkles style={{ width: "12px", height: "12px" }} /> Run Final Selection</>}
-                        </button>
-                      </div>
-
-                      {finalSelMsg && <p style={{ margin: 0, fontSize: "0.72rem", color: "#7c3aed", fontWeight: 600 }}>{finalSelMsg}</p>}
-
-                      {finalSelResults.length > 0 && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          {finalSelResults.map((r: any) => {
-                            const isExp = finalSelExpanded === r.candidateId;
-                            const decisionStyle: Record<string, { bg: string; color: string; label: string }> = {
-                              hire: { bg: "#dcfce7", color: "#16a34a", label: "Hire" },
-                              maybe: { bg: "#fef9c3", color: "#a16207", label: "Maybe" },
-                              pass: { bg: "#fee2e2", color: "#dc2626", label: "Pass" },
-                            };
-                            const ds = decisionStyle[r.hiringDecision] || decisionStyle.maybe;
-                            return (
-                              <div key={r.candidateId} style={{ border: "1px solid #e9d5ff", borderRadius: "10px", overflow: "hidden", background: "#fff" }}>
-                                <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }} onClick={() => setFinalSelExpanded(isExp ? null : r.candidateId)}>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.82rem", color: "#0f172a" }}>{r.candidateName || "Candidate"}</p>
-                                    <p style={{ margin: 0, fontSize: "0.7rem", color: "#64748b" }}>{r.email}</p>
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                    <span style={{ fontSize: "0.78rem", fontWeight: 800, color: r.finalScore >= 75 ? "#22c55e" : r.finalScore >= 55 ? "#f59e0b" : "#ef4444" }}>{r.finalScore}/100</span>
-                                    <span style={{ padding: "2px 8px", borderRadius: "10px", fontSize: "0.65rem", fontWeight: 700, background: ds.bg, color: ds.color }}>{ds.label}</span>
-                                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth={2} style={{ transform: isExp ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}><polyline points="6 9 12 15 18 9"/></svg>
-                                  </div>
-                                </div>
-                                {isExp && (
-                                  <div style={{ borderTop: "1px solid #f3e8ff", padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#334155", lineHeight: 1.6, background: "#faf5ff", padding: "10px 12px", borderRadius: "8px", border: "1px solid #e9d5ff" }}><strong>AI Conclusion:</strong> {r.conclusion}</p>
-                                    {r.recommendation && <p style={{ margin: 0, fontSize: "0.72rem", color: "#475569", fontStyle: "italic" }}>"{r.recommendation}"</p>}
-                                    <div style={{ display: "flex", gap: "10px" }}>
-                                      {r.strengths?.length > 0 && (
-                                        <div style={{ flex: 1, background: "#f0fdf4", borderRadius: "8px", padding: "8px 10px", border: "1px solid #bbf7d0" }}>
-                                          <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#15803d" }}>STRENGTHS</p>
-                                          {r.strengths.map((s: string, i: number) => <p key={i} style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "#166534" }}>• {s}</p>)}
-                                        </div>
-                                      )}
-                                      {r.concerns?.length > 0 && (
-                                        <div style={{ flex: 1, background: "#fef9c3", borderRadius: "8px", padding: "8px 10px", border: "1px solid #fde68a" }}>
-                                          <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#92400e" }}>CONCERNS</p>
-                                          {r.concerns.map((s: string, i: number) => <p key={i} style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "#78350f" }}>• {s}</p>)}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {finalSelResults.length === 0 && !finalSelLoading && (
-                        <p style={{ margin: 0, fontSize: "0.78rem", color: "#94a3b8" }}>Click "Run Final Selection" to synthesise all screening stages and get a comprehensive AI verdict for each candidate.</p>
-                      )}
-                    </div>
-                  )}
-
-                  {activeStage.status === "done" && sortedStageResults.length === 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && (
+                  {activeStage.status === "done" && sortedStageResults.length === 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && (
                     <div style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}>
                       <AlertCircle style={{ width: "32px", height: "32px", margin: "0 auto 8px" }} />
                       <p style={{ margin: 0, fontSize: "0.85rem" }}>No results found for this stage.</p>

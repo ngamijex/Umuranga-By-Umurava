@@ -7,6 +7,7 @@ import { Pipeline } from "../models/Pipeline.model";
 import { Job } from "../models/Job.model";
 import { Candidate } from "../models/Candidate.model";
 import { PracticalSubmission } from "../models/PracticalSubmission.model";
+import { gradeSubmission, compareAndRankSubmissions } from "../services/practicalAssessment.service";
 import type { IPracticalAssessmentDefinition } from "../models/assessmentDefinition";
 
 const router = Router();
@@ -258,7 +259,7 @@ router.post("/:jobId/submit", upload.any(), async (req: Request, res: Response):
       files: fileMeta,
     });
 
-    await PracticalSubmission.findOneAndUpdate(
+    const sub = await PracticalSubmission.findOneAndUpdate(
       { jobId: new mongoose.Types.ObjectId(req.params.jobId), candidateId: cand._id, pipelineStageIndex: idx },
       {
         $set: { answers: payload, submittedAt: new Date() },
@@ -267,7 +268,19 @@ router.post("/:jobId/submit", upload.any(), async (req: Request, res: Response):
       { upsert: true, new: true }
     );
 
-    res.json({ success: true, message: "Submission received." });
+    // Trigger AI grading asynchronously so the candidate gets immediate confirmation
+    if (sub) {
+      gradeSubmission(sub)
+        .then(async ({ score, feedback }) => {
+          sub.score = score;
+          sub.feedback = feedback;
+          await sub.save();
+          await compareAndRankSubmissions(req.params.jobId, idx);
+        })
+        .catch(e => console.error("[practical] auto-grade failed:", e?.message));
+    }
+
+    res.json({ success: true, message: "Submission received. AI grading is in progress." });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
