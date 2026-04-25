@@ -1434,12 +1434,15 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     }
   }, [hireSubTab, selJob, pipeline, pipelineLoading, loadPipeline]);
 
-  // Poll screening progress while a stage is running
+  // Poll screening progress while a stage is running.
+  // We use activeStageIndex directly because the local `pipeline` state still shows
+  // "pending" while the long-running API call is in flight — findIndex("running") would
+  // never match and the progress bar would stay empty.
   useEffect(() => {
-    if (!pipelineRunning || !selJob || !pipeline) { setScreeningProgress(null); return; }
-    const runningIdx = pipeline.stages.findIndex(s => s.status === "running");
-    if (runningIdx < 0) { setScreeningProgress(null); return; }
+    if (!pipelineRunning || !selJob) { setScreeningProgress(null); return; }
+    setScreeningProgress({ screened: 0, total: 0 }); // show bar immediately
     let cancelled = false;
+    const runningIdx = activeStageIndex;
     const poll = async () => {
       while (!cancelled) {
         try {
@@ -1454,7 +1457,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
     };
     poll();
     return () => { cancelled = true; };
-  }, [pipelineRunning, selJob, pipeline]);
+  }, [pipelineRunning, selJob, activeStageIndex]);
 
   const screeningViewIdx = pipeline ? Math.min(activeStageIndex, pipeline.currentStageIndex || 0) : 0;
 
@@ -2893,20 +2896,24 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "0.75rem", fontWeight: 600, color: "#0369a1" }}>
                         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <Loader2 style={{ width: "13px", height: "13px", animation: "spin 0.8s linear infinite" }} />
-                          {screeningProgress
+                          {screeningProgress && screeningProgress.total > 0
                             ? `Analysing candidate ${screeningProgress.screened + 1} of ${screeningProgress.total}…`
-                            : "AI is preparing to screen candidates…"}
+                            : "Preparing to screen candidates…"}
                         </span>
-                        <span>{screeningProgress ? `${Math.round((screeningProgress.screened / screeningProgress.total) * 100)}%` : "0%"}</span>
+                        <span>
+                          {screeningProgress && screeningProgress.total > 0
+                            ? `${Math.round((screeningProgress.screened / screeningProgress.total) * 100)}%`
+                            : "0%"}
+                        </span>
                       </div>
                       <div style={{ height: "8px", borderRadius: "4px", background: "#bae6fd", overflow: "hidden" }}>
                         <div style={{
                           height: "100%",
                           borderRadius: "4px",
-                          background: "linear-gradient(90deg, #2b72f0, #7c3aed)",
+                          background: "#3b82f6",
                           width: screeningProgress && screeningProgress.total > 0
                             ? `${Math.round((screeningProgress.screened / screeningProgress.total) * 100)}%`
-                            : "5%",
+                            : "3%",
                           transition: "width 0.6s ease",
                         }} />
                       </div>
