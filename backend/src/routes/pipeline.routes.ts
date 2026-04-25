@@ -116,9 +116,6 @@ async function syncPracticalPoolFromPreviousStage(jobId: string): Promise<void> 
   await pipeline.save();
 }
 
-/* GET /pipeline/:jobId  — get or auto-create */
-router.get("/:jobId", async (req: AuthRequest, res: Response): Promise<void> => {
-
 /* GET /pipeline/:jobId/stage/:idx/progress — lightweight poll endpoint for live screening progress */
 router.get("/:jobId/stage/:idx/progress", async (req: AuthRequest, res: Response): Promise<void> => {
   try {
