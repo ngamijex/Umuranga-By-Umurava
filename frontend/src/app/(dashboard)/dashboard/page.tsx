@@ -2955,8 +2955,8 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                           <tbody>
                             {sortedStageResults.map((r, i) => {
                               const c = typeof r.candidateId === "object" ? r.candidateId : candidates.find(x => x._id === r.candidateId);
-                              const cid = c?._id || (typeof r.candidateId === "string" ? r.candidateId : r.candidateId?._id);
-                              const checked = (stageShortlist[viewingStageIdx] || []).includes(cid);
+                              const cid = String(c?._id || (typeof r.candidateId === "string" ? r.candidateId : r.candidateId?._id) || "");
+                              const checked = (stageShortlist[viewingStageIdx] || []).map(String).includes(cid);
                               const wasShortlisted = (activeStage.shortlistedIds || []).some(id => String(id) === String(cid));
                               const advancesToNext = isPastStage
                                 ? wasShortlisted

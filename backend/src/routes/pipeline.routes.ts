@@ -66,16 +66,9 @@ function pickAiShortlistIds(
   targetCount: number
 ): mongoose.Types.ObjectId[] {
   if (targetCount <= 0 || !results.length) return [];
-  const strongYes = results
-    .filter(r => r.recommendation === "strong_yes")
-    .sort((a, b) => b.overallScore - a.overallScore);
-  const yes = results
-    .filter(r => r.recommendation === "yes")
-    .sort((a, b) => b.overallScore - a.overallScore);
-  const maybe = results
-    .filter(r => r.recommendation === "maybe")
-    .sort((a, b) => b.overallScore - a.overallScore);
-  const ordered = [...strongYes, ...yes, ...maybe];
+  // Always pick the top N by score regardless of recommendation tier,
+  // so HR's target count is always honoured exactly.
+  const ordered = [...results].sort((a, b) => b.overallScore - a.overallScore);
   return ordered.slice(0, targetCount).map(r => {
     const id = r.candidateId;
     if (id instanceof mongoose.Types.ObjectId) return id;
