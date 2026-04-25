@@ -727,6 +727,7 @@ function JobsTab({ jobs, onCreated, onUpdated, onDeleted }: { jobs: Job[]; onCre
   const [err, setErr] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [delConfirm, setDelConfirm] = useState<string | null>(null);
+  const [deleteJobBusy, setDeleteJobBusy] = useState<string | null>(null);
   const sf = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
   const [practicalBuilderJobId, setPracticalBuilderJobId] = useState<string | null>(null);

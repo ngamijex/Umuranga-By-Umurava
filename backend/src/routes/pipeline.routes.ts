@@ -210,7 +210,7 @@ router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): P
 
     pipeline.stages[idx].candidateIds = candidateIds;
     pipeline.stages[idx].status = "running";
-    pipeline.stages[idx].screeningProgress = { screened: 0, total: candidates.length };
+    pipeline.stages[idx].screeningProgress = { screened: 0, total: candidateIds.length };
     await pipeline.save();
 
     /* HR context for this stage (same builder as standalone screening uses for stage 0) */
