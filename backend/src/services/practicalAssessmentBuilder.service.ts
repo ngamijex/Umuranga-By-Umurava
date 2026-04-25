@@ -235,27 +235,58 @@ export async function aiGenerateDatasets(
   const instr = projectInstructions.slice(0, 2000);
   const skills = (job.requiredSkills || []).join(", ") || "not specified";
 
-  // First ask AI whether this role genuinely needs datasets
-  const roleCheckPrompt = `You are assessing whether a take-home project assessment for the role of "${job.title}" (${job.department} department) should include sample datasets for candidates to analyse.
+  // Keyword-based fast-path: always needs datasets for clearly data-centric roles
+  const titleLower = (job.title || "").toLowerCase();
+  const DATA_KEYWORDS = [
+    "data analyst", "data scientist", "data engineer", "business intelligence",
+    "bi analyst", "bi developer", "analytics engineer", "machine learning",
+    "ml engineer", "ai engineer", "data manager", "quantitative analyst",
+    "research analyst", "reporting analyst", "insights analyst", "database",
+    "statistician", "econometrician", "data specialist",
+  ];
+  const NON_DATA_KEYWORDS = [
+    "hr ", "human resource", "talent", "recruiter", "operations manager",
+    "sales manager", "marketing manager", "product manager", "project manager",
+    "legal", "compliance", "accountant", "finance manager", "graphic design",
+    "ux designer", "ui designer", "content writer", "copywriter", "logistics",
+    "airport", "transport", "supply chain", "procurement", "office manager",
+  ];
+
+  let needsDatasets: boolean;
+
+  const isObviouslyData = DATA_KEYWORDS.some(kw => titleLower.includes(kw));
+  const isObviouslyNonData = NON_DATA_KEYWORDS.some(kw => titleLower.includes(kw));
+
+  if (isObviouslyData) {
+    needsDatasets = true;
+    console.log(`[datasets] Role "${job.title}": needsDatasets=true (keyword match)`);
+  } else if (isObviouslyNonData) {
+    needsDatasets = false;
+    console.log(`[datasets] Role "${job.title}": needsDatasets=false (keyword match)`);
+  } else {
+    // Ambiguous role — ask Gemini
+    const roleCheckPrompt = `You are assessing whether a take-home project assessment for the role of "${job.title}" (${job.department} department) should include sample datasets for candidates to analyse.
 
 Job description: ${desc.slice(0, 1000)}
 Required skills: ${skills}
 Project brief excerpt: ${instr.slice(0, 600)}
 
 Answer with ONLY a JSON object — no other text:
-{ "needsDatasets": true|false, "reason": "<one sentence>" }
+{ "needsDatasets": true, "reason": "<one sentence>" }
 
 Answer true ONLY if this is genuinely a data/analytics/BI/ML/engineering role where candidates would be expected to process structured data. Answer false for management, HR, operations, sales, marketing, creative, legal, finance planning, logistics scheduling, or any role where the project deliverable is a document, plan, or strategy rather than data analysis.`;
 
-  let needsDatasets = false;
-  try {
-    const checkRaw = await geminiChatText(roleCheckPrompt, { maxRetries: 2 });
-    const checkParsed = JSON.parse(stripJsonFence(checkRaw));
-    needsDatasets = checkParsed.needsDatasets === true;
-    console.log(`[datasets] Role "${job.title}": needsDatasets=${needsDatasets} — ${checkParsed.reason}`);
-  } catch {
-    // If check fails, default to not generating datasets
-    needsDatasets = false;
+    try {
+      const checkRaw = await geminiChatText(roleCheckPrompt, { maxRetries: 2 });
+      const checkParsed = JSON.parse(stripJsonFence(checkRaw));
+      needsDatasets = checkParsed.needsDatasets === true;
+      console.log(`[datasets] Role "${job.title}": needsDatasets=${needsDatasets} — ${checkParsed.reason}`);
+    } catch {
+      // If Gemini check fails for an ambiguous role, look at the description keywords
+      const descLower = desc.toLowerCase();
+      needsDatasets = DATA_KEYWORDS.some(kw => descLower.includes(kw));
+      console.log(`[datasets] Role "${job.title}": Gemini check failed, fallback needsDatasets=${needsDatasets}`);
+    }
   }
 
   if (!needsDatasets) return [];
