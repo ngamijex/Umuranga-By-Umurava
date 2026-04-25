@@ -153,12 +153,22 @@ router.get("/:jobId/resources/:storedName", async (req: Request, res: Response):
     const job = await Job.findById(req.params.jobId).lean();
     if (!job) { res.status(404).json({ success: false, error: "Job not found" }); return; }
     const tpl = (job as any).practicalAssessmentTemplate;
-    const resources: Array<{ storedName: string; name: string; mimeType: string }> = tpl?.resources || [];
+    const resources: Array<{ storedName: string; name: string; mimeType: string; csvContent?: string }> = tpl?.resources || [];
     const meta = resources.find(r => r.storedName === req.params.storedName);
     if (!meta) { res.status(404).json({ success: false, error: "Resource not found" }); return; }
-    const filePath = path.join(process.cwd(), "uploads", "assessment-resources", req.params.jobId, req.params.storedName);
     res.setHeader("Content-Disposition", `attachment; filename="${meta.name.replace(/"/g, "_")}"`);
     if (meta.mimeType) res.setHeader("Content-Type", meta.mimeType);
+    // Prefer serving content stored in DB (survives server restarts on Render/cloud)
+    if (meta.csvContent) {
+      const isBase64 = meta.mimeType && meta.mimeType.includes("spreadsheet");
+      const buf = isBase64
+        ? Buffer.from(meta.csvContent, "base64")
+        : Buffer.from(meta.csvContent, "utf-8");
+      res.send(buf);
+      return;
+    }
+    // Fall back to disk for manually uploaded files
+    const filePath = path.join(process.cwd(), "uploads", "assessment-resources", req.params.jobId, req.params.storedName);
     res.sendFile(filePath);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

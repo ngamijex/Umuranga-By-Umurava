@@ -19,6 +19,7 @@ export interface IAssessmentResource {
   storedName: string; // sanitized server-side filename
   mimeType: string;
   sizeBytes: number;
+  csvContent?: string; // raw file content stored in DB so downloads survive server restarts
 }
 
 export interface IPracticalAssessmentDefinition {

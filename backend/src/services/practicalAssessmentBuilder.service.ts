@@ -105,7 +105,7 @@ Return ONLY valid JSON (no markdown fence):
             `File ${i + 1}: ${d.filename}\n  Description: ${d.description}\n  Columns: ${d.columns.join(", ")}`
           ).join("\n\n")
         }\n\nYour project brief MUST explicitly reference these exact filenames and column names in the tasks.`
-      : "";
+      : `\nIMPORTANT: No files or datasets are being provided for this project. Do NOT invent or reference any specific filenames (e.g. "sales_data.csv"). If the role involves data work, the candidate should be instructed to source or create their own sample data, or work with a fictional scenario that doesn't require a pre-provided file.`;
 
     return `You are writing a professional take-home PROJECT assessment for the role of "${job.title}" (${job.department} department).
 

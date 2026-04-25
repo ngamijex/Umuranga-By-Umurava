@@ -141,6 +141,7 @@ router.post("/:id/generate-assessment", async (req: AuthRequest, res: Response):
             storedName: csvStoredName,
             mimeType: "text/csv",
             sizeBytes: Buffer.byteLength(ds.csvContent, "utf-8"),
+            csvContent: ds.csvContent,  // stored in DB so download survives server restarts
           });
 
           if (ds.xlsxBuffer) {
@@ -153,6 +154,7 @@ router.post("/:id/generate-assessment", async (req: AuthRequest, res: Response):
               storedName: xlsxStoredName,
               mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
               sizeBytes: ds.xlsxBuffer.length,
+              csvContent: ds.xlsxBuffer.toString("base64"),  // base64 for binary
             });
           }
 
