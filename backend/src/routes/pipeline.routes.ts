@@ -245,13 +245,12 @@ router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): P
             console.error(`[Pipeline] Error screening candidate ${candidate._id}:`, e.message);
             errors.push({ candidateId: candidate._id, error: e.message });
           }
+          // Increment per-candidate so the frontend poll sees every step, not just per-batch
+          await Pipeline.updateOne(
+            { jobId: req.params.jobId },
+            { $inc: { [`stages.${idx}.screeningProgress.screened`]: 1 } }
+          );
         })
-      );
-      // Update progress after each batch so the frontend can poll it
-      const screened = Math.min(batchStart + BATCH_SIZE, candidates.length);
-      await Pipeline.updateOne(
-        { jobId: req.params.jobId },
-        { $set: { [`stages.${idx}.screeningProgress`]: { screened, total: candidates.length } } }
       );
     }
 
