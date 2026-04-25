@@ -100,14 +100,14 @@ Return ONLY valid JSON (no markdown fence):
     : (() => {
     // Build dataset context block when datasets are already known
     const datasetBlock = datasetMeta?.length
-      ? `\nThe following datasets will be provided to candidates for this project:\n\n${
+      ? `\nThe following datasets/files will be provided to candidates for this project:\n\n${
           datasetMeta.map((d, i) =>
-            `Dataset ${i + 1}: ${d.filename}\n  Description: ${d.description}\n  Columns: ${d.columns.join(", ")}`
+            `File ${i + 1}: ${d.filename}\n  Description: ${d.description}\n  Columns: ${d.columns.join(", ")}`
           ).join("\n\n")
-        }\n\nYour project brief MUST explicitly reference these exact filenames and column names in the tasks and analytical questions.`
+        }\n\nYour project brief MUST explicitly reference these exact filenames and column names in the tasks.`
       : "";
 
-    return `You are writing a professional, senior-manager-level take-home PROJECT assessment for the role of "${job.title}" (${job.department} department).
+    return `You are writing a professional take-home PROJECT assessment for the role of "${job.title}" (${job.department} department).
 
 Job description:
 ${desc}
@@ -116,68 +116,80 @@ Required skills: ${skills}
 HR hints: ${hint || "none"}
 ${datasetBlock}
 
-Write a highly detailed, directive, and structured project brief. It must feel like a real business assignment — not vague. Follow this exact structure in the projectInstructions field:
+CRITICAL RULE — ROLE-APPROPRIATE PROJECT:
+First, identify what type of professional this role is. Then design a project that reflects their ACTUAL daily work.
 
-## Business Context
-Introduce the fictional company, its industry, the specific business problem they are facing, and why this analysis/project matters strategically. Make it feel real and immersive (2–3 sentences).
+- A Data Scientist / Analyst → data analysis, modelling, visualizations, datasets
+- A Software Engineer / Developer → build a feature, API, or mini-system; code deliverables
+- A DevOps / Cloud Engineer → infrastructure design, CI/CD pipeline plan, deployment setup
+- A Designer (UI/UX, Graphic) → create mockups, wireframes, or brand materials
+- A HR Manager / Talent Specialist → workforce plan, recruitment strategy, policy document
+- An Operations Manager → process improvement plan, SOP, operational report
+- A Finance / Accounting professional → financial model, budget analysis, report
+- A Sales / Business Development person → sales strategy, pitch deck, market analysis
+- A Marketing professional → campaign plan, content strategy, go-to-market
+- A Legal / Compliance professional → compliance framework, risk assessment document
+- A Healthcare professional → clinical protocol, patient pathway, care plan
+- An Airport / Transport / Logistics professional → operational plan, safety procedure, scheduling model
+
+DO NOT assign data analysis or coding tasks to roles that don't do data work.
+DO NOT assign irrelevant deliverables. Match the project to what the role ACTUALLY does.
+
+Write a highly detailed, directive, and structured project brief using this exact structure in the projectInstructions field:
+
+## Background
+2–3 sentences: introduce a realistic fictional organization/scenario that this professional would actually work in. Make it feel real and role-relevant.
 
 ## Your Mission
-State exactly what the candidate is being asked to do — one clear mission statement.
+1–2 sentences: state clearly and concisely what the candidate must accomplish.
 
-## The Datasets${datasetMeta?.length ? ` (provided for download)` : ""}
-${datasetMeta?.length
-  ? datasetMeta.map(d =>
-      `- **${d.filename}**: ${d.description} — key columns include: ${d.columns.slice(0, 6).join(", ")}${d.columns.length > 6 ? ", and more" : ""}.`
-    ).join("\n")
-  : "Describe what data the candidate will work with."}
-Explain how the datasets relate to each other and how candidates should use them.
+## Context & Materials
+Describe what information, constraints, or starting materials the candidate has to work with. If datasets/files are provided, reference them here. If it's a management/strategy role, describe the scenario details they must work from.
 
 ## Tasks
-List 6–8 numbered, specific technical tasks the candidate must complete. Each task should:
-- Reference specific column names or file names where relevant
-- Be concrete and measurable (not vague like "analyze the data")
-- Include at least 2 tasks that require building/training a model or writing code
-- Include at least 2 tasks requiring data visualizations with specific requirements (e.g. "plot the distribution of X grouped by Y")
-- Include 1 task requiring a written interpretation of findings with business implications
-
-## Analytical Questions to Answer
-List 4–6 specific data questions the candidate must answer in their report. These should be answerable from the datasets and require actual analysis (not opinions). Example format: "What is the churn rate by customer segment? Which segment has the highest retention?"
+List 5–7 numbered, specific tasks the candidate must complete. Rules:
+- Every task must be directly relevant to this specific role's real responsibilities
+- Tasks must be concrete and measurable — not vague
+- Tasks should progressively build toward the final deliverable
+- For technical roles: include implementation + documentation tasks
+- For strategy/management roles: include analysis + recommendation + planning tasks
+- For creative roles: include briefing understanding + creation + rationale tasks
 
 ## Deliverables
-State exactly what must be submitted:
-- Code: format, structure, documentation requirements
-- Report: sections required, max length
-- Visualizations: minimum number and format
-- Any additional items (e.g. demo video, README)
+State EXACTLY what must be submitted — formatted for this role:
+- For data/technical roles: code files, reports, visualizations
+- For management/strategy roles: written documents, plans, proposals, presentations
+- For creative roles: design files, portfolios, written rationale
+- Every deliverable must be realistic for this role
 
 ## Evaluation Criteria
-List 5 criteria with approximate weight/priority:
-1. Technical correctness and code quality (%)
-2. Depth and accuracy of analysis (%)
-3. Quality of visualizations (%)
-4. Clarity and structure of the written report (%)
-5. Business insight and recommendations (%)
+List 5 criteria with approximate weight — tailored to this role:
+1. [Role-relevant criterion 1] (~%)
+2. [Role-relevant criterion 2] (~%)
+3. [Role-relevant criterion 3] (~%)
+4. Quality and clarity of written communication (~%)
+5. Professional judgement and role-readiness (~%)
 
 ## Timeline
-Recommend a realistic deadline (e.g. 5–7 days from receipt) and advise candidates to start early.
+Recommend a realistic deadline (3–7 days depending on scope) and any tips for the candidate.
 
 IMPORTANT RULES:
 - Write projectInstructions as a single multi-paragraph string using \\n for line breaks and ## for headings
-- Be specific — use actual column names from the datasets where available
-- Every task and question must be answerable with the provided data
-- Do not be vague. Each instruction must be actionable and unambiguous.
+- Be specific and role-authentic — every task must reflect real work for this job title
+- Never default to "analyze data" or "build a model" unless the job genuinely requires it
+- The project should feel like something a real manager at this company would actually assign
 
 Return ONLY valid JSON (no markdown fence):
 {
   "mode": "project",
-  "title": "<short, specific project title>",
+  "title": "<short, specific project title relevant to the role>",
   "projectInstructions": "<full detailed instructions — use ## headings and \\n line breaks>",
   "sections": [],
   "questions": [
-    { "id": "repo", "label": "Repository / live demo URL (GitHub, Colab, etc.)", "inputType": "textarea", "options": [] },
-    { "id": "approach", "label": "Summarize your approach: key decisions, challenges faced, and what you would improve with more time", "inputType": "textarea", "options": [] },
-    { "id": "insight", "label": "What is the single most important business insight from your analysis? How would you recommend acting on it?", "inputType": "textarea", "options": [] },
-    { "id": "files", "label": "Upload your deliverables (PDF report, zipped code, notebooks, etc.)", "inputType": "file", "options": [] }
+    { "id": "q1", "label": "<role-relevant opening question: e.g. 'Walk us through your approach and the key decisions you made'>", "inputType": "textarea", "options": [] },
+    { "id": "q2", "label": "<role-relevant challenge question: e.g. 'What was the hardest part of this project and how did you handle it?'>", "inputType": "textarea", "options": [] },
+    { "id": "q3", "label": "<role-relevant insight question: e.g. 'What would you improve with more time or resources?'>", "inputType": "textarea", "options": [] },
+    { "id": "files", "label": "Upload your deliverables (documents, files, presentations, code, etc.)", "inputType": "file", "options": [] }
   ],
   "maxFiles": 5,
   "maxFileMb": 15
@@ -212,7 +224,8 @@ Return ONLY valid JSON (no markdown fence):
 
 /* ────────────────────────────────────────────────────────────
    AI-generated datasets for project assessments
-   Returns CSV content + optional XLSX buffer per dataset
+   Only generates datasets when the role genuinely involves data work.
+   Returns empty array for management, creative, operational, etc. roles.
    ──────────────────────────────────────────────────────────── */
 export async function aiGenerateDatasets(
   job: IJob,
@@ -221,6 +234,31 @@ export async function aiGenerateDatasets(
   const desc  = String(job.description || "").slice(0, 3000);
   const instr = projectInstructions.slice(0, 2000);
   const skills = (job.requiredSkills || []).join(", ") || "not specified";
+
+  // First ask AI whether this role genuinely needs datasets
+  const roleCheckPrompt = `You are assessing whether a take-home project assessment for the role of "${job.title}" (${job.department} department) should include sample datasets for candidates to analyse.
+
+Job description: ${desc.slice(0, 1000)}
+Required skills: ${skills}
+Project brief excerpt: ${instr.slice(0, 600)}
+
+Answer with ONLY a JSON object — no other text:
+{ "needsDatasets": true|false, "reason": "<one sentence>" }
+
+Answer true ONLY if this is genuinely a data/analytics/BI/ML/engineering role where candidates would be expected to process structured data. Answer false for management, HR, operations, sales, marketing, creative, legal, finance planning, logistics scheduling, or any role where the project deliverable is a document, plan, or strategy rather than data analysis.`;
+
+  let needsDatasets = false;
+  try {
+    const checkRaw = await geminiChatText(roleCheckPrompt, { maxRetries: 2 });
+    const checkParsed = JSON.parse(stripJsonFence(checkRaw));
+    needsDatasets = checkParsed.needsDatasets === true;
+    console.log(`[datasets] Role "${job.title}": needsDatasets=${needsDatasets} — ${checkParsed.reason}`);
+  } catch {
+    // If check fails, default to not generating datasets
+    needsDatasets = false;
+  }
+
+  if (!needsDatasets) return [];
 
   const prompt = `You are preparing sample datasets for a take-home project assessment for the role of "${job.title}" (${job.department || "General"} department).
 
