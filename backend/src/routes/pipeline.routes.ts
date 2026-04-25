@@ -118,6 +118,32 @@ async function syncPracticalPoolFromPreviousStage(jobId: string): Promise<void> 
 
 /* GET /pipeline/:jobId  — get or auto-create */
 router.get("/:jobId", async (req: AuthRequest, res: Response): Promise<void> => {
+
+/* GET /pipeline/:jobId/stage/:idx/progress — lightweight poll endpoint for live screening progress */
+router.get("/:jobId/stage/:idx/progress", async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const pipeline = await Pipeline.findOne({ jobId: req.params.jobId })
+      .select("stages.status stages.screeningProgress stages.candidateIds")
+      .lean();
+    if (!pipeline) { res.status(404).json({ success: false, error: "Pipeline not found" }); return; }
+    const idx = parseInt(req.params.idx);
+    const stage = (pipeline.stages as any[])[idx];
+    if (!stage) { res.status(404).json({ success: false, error: "Stage not found" }); return; }
+    res.json({
+      success: true,
+      data: {
+        status: stage.status,
+        screened: stage.screeningProgress?.screened ?? 0,
+        total: stage.screeningProgress?.total ?? (stage.candidateIds?.length ?? 0),
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* GET /pipeline/:jobId  — get or auto-create */
+router.get("/:jobId", async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     let pipeline = await Pipeline.findOne({ jobId: req.params.jobId });
     if (!pipeline) {
@@ -187,6 +213,7 @@ router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): P
 
     pipeline.stages[idx].candidateIds = candidateIds;
     pipeline.stages[idx].status = "running";
+    pipeline.stages[idx].screeningProgress = { screened: 0, total: candidates.length };
     await pipeline.save();
 
     /* HR context for this stage (same builder as standalone screening uses for stage 0) */
@@ -222,6 +249,12 @@ router.post("/:jobId/stage/:idx/run", async (req: AuthRequest, res: Response): P
             errors.push({ candidateId: candidate._id, error: e.message });
           }
         })
+      );
+      // Update progress after each batch so the frontend can poll it
+      const screened = Math.min(batchStart + BATCH_SIZE, candidates.length);
+      await Pipeline.updateOne(
+        { jobId: req.params.jobId },
+        { $set: { [`stages.${idx}.screeningProgress`]: { screened, total: candidates.length } } }
       );
     }
 

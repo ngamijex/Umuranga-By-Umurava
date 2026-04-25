@@ -114,6 +114,7 @@ interface IPipelineStage {
   applicantComms?: IApplicantComms;
   emailLog?: IStageEmailLog[];
   assessmentDefinition?: IPracticalAssessmentDefinition;
+  screeningProgress?: { screened: number; total: number };
 }
 interface IPipeline { _id: string; jobId: string; currentStageIndex: number; stages: IPipelineStage[]; finalConclusion?: string; createdAt: string; updatedAt: string; }
 
@@ -752,7 +753,9 @@ function JobsTab({ jobs, onCreated, onUpdated, onDeleted }: { jobs: Job[]; onCre
   };
 
   const deleteJob = async (id: string) => {
+    setDeleteJobBusy(id);
     try { await api.delete(`/jobs/${id}`); onDeleted(id); setDelConfirm(null); } catch {}
+    finally { setDeleteJobBusy(null); }
   };
 
   const setStatus = async (j: Job, st: string) => {
@@ -962,7 +965,10 @@ function JobsTab({ jobs, onCreated, onUpdated, onDeleted }: { jobs: Job[]; onCre
                 <div style={{ borderTop: "1px solid #fecaca", background: "#fef2f2", padding: "10px 20px", display: "flex", alignItems: "center", gap: "12px" }}>
                   <p style={{ flex: 1, color: "#dc2626", fontSize: "0.83rem", fontWeight: 600 }}>Delete "{j.title}"? This cannot be undone.</p>
                   <button onClick={() => setDelConfirm(null)} style={{ padding: "5px 14px", borderRadius: "8px", background: "#fff", border: "1px solid #fecaca", color: "#475569", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}>Cancel</button>
-                  <button onClick={() => deleteJob(j._id)} style={{ padding: "5px 14px", borderRadius: "8px", background: "#dc2626", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}>Delete</button>
+                  <button onClick={() => deleteJob(j._id)} disabled={deleteJobBusy === j._id} style={{ padding: "5px 14px", borderRadius: "8px", background: "#dc2626", color: "#fff", border: "none", cursor: deleteJobBusy === j._id ? "not-allowed" : "pointer", fontSize: "0.78rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px", opacity: deleteJobBusy === j._id ? 0.7 : 1 }}>
+                    {deleteJobBusy === j._id && <Loader2 style={{ width: "12px", height: "12px", animation: "spin 0.8s linear infinite" }} />}
+                    {deleteJobBusy === j._id ? "Deleting…" : "Delete"}
+                  </button>
                 </div>
               )}
               {/* Expanded details */}
@@ -1345,6 +1351,11 @@ function HireTab({ jobs }: { jobs: Job[] }) {
   const [gradingPractical, setGradingPractical] = useState(false);
   const [finalBusy, setFinalBusy] = useState(false);
   const [finalConclusion, setFinalConclusion] = useState<string>("");
+  const [screeningProgress, setScreeningProgress] = useState<{ screened: number; total: number } | null>(null);
+  const [deleteJobBusy, setDeleteJobBusy] = useState<string | null>(null);
+  const [deleteCandBusy, setDeleteCandBusy] = useState<string | null>(null);
+  const [confirmShortlistBusy, setConfirmShortlistBusy] = useState(false);
+  const [confirmInterviewShortlistBusy, setConfirmInterviewShortlistBusy] = useState(false);
 
   /* AI Interview state */
   const [interviewSessions, setInterviewSessions] = useState<Array<Record<string, unknown>>>([]);
@@ -1421,6 +1432,28 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       loadPipeline(selJob._id);
     }
   }, [hireSubTab, selJob, pipeline, pipelineLoading, loadPipeline]);
+
+  // Poll screening progress while a stage is running
+  useEffect(() => {
+    if (!pipelineRunning || !selJob || !pipeline) { setScreeningProgress(null); return; }
+    const runningIdx = pipeline.stages.findIndex(s => s.status === "running");
+    if (runningIdx < 0) { setScreeningProgress(null); return; }
+    let cancelled = false;
+    const poll = async () => {
+      while (!cancelled) {
+        try {
+          const { data } = await api.get(`/pipeline/${selJob._id}/stage/${runningIdx}/progress`);
+          if (data.success) {
+            setScreeningProgress({ screened: data.data.screened, total: data.data.total });
+            if (data.data.status === "done") break;
+          }
+        } catch { /* ignore */ }
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, [pipelineRunning, selJob, pipeline]);
 
   const screeningViewIdx = pipeline ? Math.min(activeStageIndex, pipeline.currentStageIndex || 0) : 0;
 
@@ -1563,6 +1596,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
 
   const confirmInterviewShortlist = useCallback(async () => {
     if (!selJob || !pipeline || interviewPickIds.size === 0) return;
+    setConfirmInterviewShortlistBusy(true);
     try {
       await api.post(`/pipeline/${selJob._id}/stage/${screeningViewIdx}/interview/shortlist`, {
         candidateIds: [...interviewPickIds],
@@ -1572,7 +1606,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
       setPipelineMsg("Interview shortlist confirmed.");
     } catch (e: any) {
       setPipelineMsg(e.response?.data?.error || "Failed to confirm shortlist.");
-    }
+    } finally { setConfirmInterviewShortlistBusy(false); }
   }, [selJob, pipeline, screeningViewIdx, interviewPickIds, loadPipeline]);
 
   useEffect(() => {
@@ -1691,6 +1725,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
 
   const deleteCandidate = async (id: string) => {
     if (!confirm("Delete this candidate and their screening result?")) return;
+    setDeleteCandBusy(id);
     try {
       // Delete candidate, their screening result, and reset pipeline
       await Promise.all([
@@ -1716,6 +1751,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
         }
       }
     } catch (e: any) { alert(e.response?.data?.error || "Delete failed"); }
+    finally { setDeleteCandBusy(null); }
   };
 
   const clearAllCandidates = async () => {
@@ -2131,9 +2167,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                 AI judgment
               </button>
             )}
-            <button type="button" onClick={() => deleteCandidate(c._id)} title="Delete"
-              style={{ width: "28px", height: "28px", borderRadius: "6px", border: "1px solid #fecaca", background: "#fff1f2", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Trash2 style={{ width: "12px", height: "12px" }} />
+            <button type="button" onClick={() => deleteCandidate(c._id)} disabled={deleteCandBusy === c._id} title="Delete"
+              style={{ width: "28px", height: "28px", borderRadius: "6px", border: "1px solid #fecaca", background: "#fff1f2", color: "#ef4444", cursor: deleteCandBusy === c._id ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: deleteCandBusy === c._id ? 0.6 : 1 }}>
+              {deleteCandBusy === c._id ? <Loader2 style={{ width: "12px", height: "12px", animation: "spin 0.8s linear infinite" }} /> : <Trash2 style={{ width: "12px", height: "12px" }} />}
             </button>
           </div>
         );
@@ -2635,6 +2671,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
 
           const confirmShortlist = async (idx: number) => {
             const ids = stageShortlist[idx] || [];
+            setConfirmShortlistBusy(true);
             try {
               const { data } = await api.post(`/pipeline/${selJob!._id}/stage/${idx}/shortlist`, { shortlistedIds: ids });
               if (data.success) {
@@ -2645,7 +2682,7 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                 setPipelineMsg(`Shortlist confirmed — ${data.data.stages[idx].name} complete.`);
               }
             } catch { alert("Failed to confirm shortlist"); }
-            finally { setTimeout(() => setPipelineMsg(""), 4000); }
+            finally { setConfirmShortlistBusy(false); setTimeout(() => setPipelineMsg(""), 4000); }
           };
 
           const confirmShortlistAndAdvance = async (idx: number) => {
@@ -2778,6 +2815,11 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       {isPastStage ? "Stage completed and archived" :
                        activeStage.type === "practical" || activeStage.type === "ai_interview" || activeStage.type === "final" ? "" :
                        activeStage.status === "pending" ? `Ready to screen ${candidatesInStage.length} candidates` :
+                       activeStage.status === "running" ? (
+                         screeningProgress
+                           ? `Screening ${screeningProgress.screened} of ${screeningProgress.total} candidates…`
+                           : "AI is screening candidates…"
+                       ) :
                        activeStage.status === "done" ? `${activeStage.shortlistedIds?.length || 0} candidates shortlisted — confirm to proceed` : "Screening in progress…"}
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
@@ -2788,8 +2830,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                         </button>
                       )}
                       {isCurrentStage && activeStage.status === "done" && currentStageIdx < (pipeline?.stages.length || 1) - 1 && (
-                        <button onClick={() => confirmShortlistAndAdvance(viewingStageIdx)} disabled={(stageShortlist[viewingStageIdx] || []).length === 0} style={{ padding: "8px 16px", borderRadius: "8px", background: (stageShortlist[viewingStageIdx] || []).length === 0 ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.78rem", fontWeight: 700, cursor: (stageShortlist[viewingStageIdx] || []).length === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-                          Confirm & Proceed <ArrowRight style={{ width: "14px", height: "14px" }} />
+                        <button onClick={() => confirmShortlistAndAdvance(viewingStageIdx)} disabled={confirmShortlistBusy || (stageShortlist[viewingStageIdx] || []).length === 0} style={{ padding: "8px 16px", borderRadius: "8px", background: confirmShortlistBusy || (stageShortlist[viewingStageIdx] || []).length === 0 ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.78rem", fontWeight: 700, cursor: confirmShortlistBusy || (stageShortlist[viewingStageIdx] || []).length === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+                          {confirmShortlistBusy ? <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} /> : null}
+                          {confirmShortlistBusy ? "Saving…" : <>Confirm & Proceed <ArrowRight style={{ width: "14px", height: "14px" }} /></>}
                         </button>
                       )}
                       {isCurrentStage && activeStage.status === "done" && currentStageIdx === (pipeline?.stages.length || 1) - 1 && (
@@ -2843,6 +2886,32 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                     </div>
                   )}
 
+                  {/* Live progress bar during screening run */}
+                  {pipelineRunning && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && (
+                    <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", background: "#f0f9ff" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "0.75rem", fontWeight: 600, color: "#0369a1" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <Loader2 style={{ width: "13px", height: "13px", animation: "spin 0.8s linear infinite" }} />
+                          {screeningProgress
+                            ? `Analysing candidate ${screeningProgress.screened + 1} of ${screeningProgress.total}…`
+                            : "AI is preparing to screen candidates…"}
+                        </span>
+                        <span>{screeningProgress ? `${Math.round((screeningProgress.screened / screeningProgress.total) * 100)}%` : "0%"}</span>
+                      </div>
+                      <div style={{ height: "8px", borderRadius: "4px", background: "#bae6fd", overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%",
+                          borderRadius: "4px",
+                          background: "linear-gradient(90deg, #2b72f0, #7c3aed)",
+                          width: screeningProgress && screeningProgress.total > 0
+                            ? `${Math.round((screeningProgress.screened / screeningProgress.total) * 100)}%`
+                            : "5%",
+                          transition: "width 0.6s ease",
+                        }} />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Results / Shortlist Table — AI-screened stages only (not practical, ai_interview, or final) */}
                   {activeStage.status === "done" && sortedStageResults.length > 0 && activeStage.type !== "practical" && activeStage.type !== "ai_interview" && activeStage.type !== "final" && (
                     <div style={{ padding: "16px 20px" }}>
@@ -2851,8 +2920,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                           {isPastStage ? "Stage Results — Final Shortlist" : "Stage Results — Select Shortlist"}
                         </h5>
                         {!isPastStage && (
-                          <button onClick={() => confirmShortlist(viewingStageIdx)} disabled={(stageShortlist[viewingStageIdx] || []).length === 0} style={{ padding: "6px 14px", borderRadius: "6px", background: (stageShortlist[viewingStageIdx] || []).length === 0 ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.72rem", fontWeight: 700, cursor: (stageShortlist[viewingStageIdx] || []).length === 0 ? "not-allowed" : "pointer" }}>
-                            Confirm Shortlist ({(stageShortlist[viewingStageIdx] || []).length})
+                          <button onClick={() => confirmShortlist(viewingStageIdx)} disabled={confirmShortlistBusy || (stageShortlist[viewingStageIdx] || []).length === 0} style={{ padding: "6px 14px", borderRadius: "6px", background: confirmShortlistBusy || (stageShortlist[viewingStageIdx] || []).length === 0 ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.72rem", fontWeight: 700, cursor: confirmShortlistBusy || (stageShortlist[viewingStageIdx] || []).length === 0 ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                            {confirmShortlistBusy && <Loader2 style={{ width: "12px", height: "12px", animation: "spin 1s linear infinite" }} />}
+                            {confirmShortlistBusy ? "Saving…" : `Confirm Shortlist (${(stageShortlist[viewingStageIdx] || []).length})`}
                           </button>
                         )}
                       </div>
@@ -3012,15 +3082,16 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                                     style={{ padding: "8px 14px", borderRadius: "8px", background: emailDraftBusy ? "#94a3b8" : "#7c3aed", color: "#fff", border: "none", fontSize: "0.75rem", fontWeight: 700, cursor: emailDraftBusy ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
                                   >
                                     {emailDraftBusy ? <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} /> : <Sparkles style={{ width: "14px", height: "14px" }} />}
-                                    Generate email drafts
+                                    {emailDraftBusy ? "AI is writing emails…" : "Generate email drafts"}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={sendApplicantEmails}
                                     disabled={emailSendBusy || !emailDrafts?.length}
-                                    style={{ padding: "8px 14px", borderRadius: "8px", background: emailSendBusy || !emailDrafts?.length ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.75rem", fontWeight: 700, cursor: emailSendBusy || !emailDrafts?.length ? "not-allowed" : "pointer" }}
+                                    style={{ padding: "8px 14px", borderRadius: "8px", background: emailSendBusy || !emailDrafts?.length ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.75rem", fontWeight: 700, cursor: emailSendBusy || !emailDrafts?.length ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
                                   >
-                                    {emailSendBusy ? "Sending…" : "Send emails"}
+                                    {emailSendBusy && <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} />}
+                                    {emailSendBusy ? "Sending emails…" : "Send emails"}
                                   </button>
                                   {emailOpsMsg ? <span style={{ fontSize: "0.7rem", color: "#15803d" }}>{emailOpsMsg}</span> : null}
                                 </div>
@@ -3501,8 +3572,9 @@ function HireTab({ jobs }: { jobs: Job[] }) {
                       {/* Shortlist controls */}
                       {interviewPickIds.size > 0 && (
                         <div style={{ display: "flex", gap: "8px", alignItems: "center", padding: "12px 14px", background: "#f0fdf4", borderRadius: "10px", border: "1px solid #bbf7d0" }}>
-                          <button onClick={confirmInterviewShortlist} style={{ padding: "8px 18px", borderRadius: "8px", background: "#16a34a", color: "#fff", border: "none", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
-                            Confirm &amp; Advance ({interviewPickIds.size})
+                          <button onClick={confirmInterviewShortlist} disabled={confirmInterviewShortlistBusy} style={{ padding: "8px 18px", borderRadius: "8px", background: confirmInterviewShortlistBusy ? "#94a3b8" : "#16a34a", color: "#fff", border: "none", fontSize: "0.78rem", fontWeight: 700, cursor: confirmInterviewShortlistBusy ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            {confirmInterviewShortlistBusy && <Loader2 style={{ width: "14px", height: "14px", animation: "spin 1s linear infinite" }} />}
+                            {confirmInterviewShortlistBusy ? "Saving…" : `Confirm & Advance (${interviewPickIds.size})`}
                           </button>
                           <button onClick={() => setInterviewPickIds(new Set())} style={{ padding: "7px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", background: "#fff", color: "#64748b", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>Clear</button>
                           <span style={{ fontSize: "0.72rem", color: "#16a34a" }}>{interviewPickIds.size} candidate(s) selected to advance</span>

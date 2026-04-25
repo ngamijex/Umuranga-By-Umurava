@@ -46,6 +46,8 @@ export interface IPipelineStage {
   emailLog?: IStageEmailLog[];
   /** Practical stage: in-app form/project definition for candidates */
   assessmentDefinition?: IPracticalAssessmentDefinition;
+  /** Live progress during a run — { screened: number, total: number } */
+  screeningProgress?: { screened: number; total: number };
 }
 
 export interface IPipeline extends Document {
@@ -150,6 +152,10 @@ const stageSchema = new Schema<IPipelineStage>({
   applicantComms: { type: applicantCommsSchema, default: () => ({}) },
   emailLog: { type: [stageEmailLogSchema], default: [] },
   assessmentDefinition: { type: assessmentDefinitionSchema, default: undefined },
+  screeningProgress: {
+    type: new Schema({ screened: { type: Number, default: 0 }, total: { type: Number, default: 0 } }, { _id: false }),
+    default: undefined,
+  },
 });
 
 export const DEFAULT_STAGES: Omit<IPipelineStage, "_id">[] = [
